@@ -687,6 +687,25 @@ function renderSettings(){
       <input type="number" id="ovyAmount" placeholder="年間枠" style="width:130px">
       <button class="btn" id="ovyAdd">追加・更新</button>
     </div>
+    <h2 class="mt">マイ枠(カテゴリ別の枠) <span class="hint">「服は年間100万まで」のような枠をいくつでも。ダッシュボードに進捗バーが出ます</span></h2>
+    ${state.categories.some(c=>c.budget&&c.budget.amount>0)?`<table class="mb">
+      <tr><th>枠(カテゴリ)</th><th>期間</th><th class="r">金額</th><th></th></tr>
+      ${state.categories.map((c,i)=>c.budget&&c.budget.amount>0?`
+      <tr data-env="${i}">
+        <td>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''}</td>
+        <td><select class="envP"><option value="month" ${c.budget.period==='month'?'selected':''}>月間</option><option value="year" ${c.budget.period==='year'?'selected':''}>年間</option></select></td>
+        <td class="r"><input type="number" class="envA" value="${c.budget.amount}" style="width:110px"></td>
+        <td><button class="btn small envDel">×</button></td>
+      </tr>`:'').join('')}
+    </table>`:'<p class="muted mb">マイ枠はまだありません。下のフォームから作成できます。</p>'}
+    <div class="row">
+      <select id="envCat">${state.categories.filter(c=>!(c.budget&&c.budget.amount>0)).map(c=>`<option>${esc(c.name)}</option>`).join('')}</select>
+      <input type="text" id="envNewCat" placeholder="または新カテゴリ名(例: 服)" style="flex:1; min-width:150px">
+      <input type="number" id="envAmount" placeholder="金額" style="width:110px">
+      <select id="envPeriod"><option value="month">月間</option><option value="year">年間</option></select>
+      <button class="btn primary" id="envAdd">枠を追加</button>
+    </div>
+    <p class="muted mt">新カテゴリ名を入力した場合はカテゴリも同時に作成されます。明細をそのカテゴリに分類すると枠にカウントされます。</p>
   </div>
   <div class="card">
     <h2>GAS同期 <span class="hint">GitHub Pagesに置いたときにGoogle Sheetsへ保存できます</span></h2>
@@ -756,6 +775,42 @@ function renderSettings(){
   el.querySelectorAll('.ovyDel').forEach(b=>{
     b.onclick = ()=>{ delete ovr().yearly[b.dataset.y]; persist(); renderSettings(); };
   });
+  // マイ枠の管理
+  el.querySelectorAll('tr[data-env]').forEach(tr=>{
+    const c = state.categories[parseInt(tr.dataset.env)];
+    tr.querySelector('.envP').onchange = e=>{ c.budget.period = e.target.value; persist(); renderSettings(); };
+    tr.querySelector('.envA').onchange = e=>{
+      const v = parseInt(e.target.value);
+      if(!v || v<=0){ delete c.budget; } else { c.budget.amount = v; }
+      persist(); renderSettings();
+    };
+    tr.querySelector('.envDel').onclick = ()=>{
+      if(confirm(`「${c.name}」の枠を解除します(カテゴリ自体は残ります)。よろしいですか?`)){
+        delete c.budget; persist(); renderSettings();
+      }
+    };
+  });
+  el.querySelector('#envAdd').onclick = ()=>{
+    const newName = el.querySelector('#envNewCat').value.trim();
+    const amount = parseInt(el.querySelector('#envAmount').value);
+    const period = el.querySelector('#envPeriod').value;
+    if(!amount || amount<=0){ alert('金額を入力してください'); return; }
+    let target;
+    if(newName){
+      if(catNames().includes(newName)){
+        target = state.categories.find(c=>c.name===newName);
+      } else {
+        target = {name:newName, sacred:false};
+        state.categories.push(target);
+      }
+    } else {
+      const sel = el.querySelector('#envCat').value;
+      target = state.categories.find(c=>c.name===sel);
+    }
+    if(!target){ alert('カテゴリを選択するか、新カテゴリ名を入力してください'); return; }
+    target.budget = { period, amount };
+    persist(); renderSettings();
+  };
   el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); persist(); };
   // カテゴリ管理
   el.querySelector('#catAdd').onclick = ()=>{
