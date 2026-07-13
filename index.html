@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家計OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1f2328; --sub:#6b7280; --faint:#9aa1ab;
+  --bg:#f7f7f4; --card:#ffffff; --line:#e5e5e0;
+  --ai:#2d5aa0; --ai-bg:#eef3fa;
+  --seiiki:#8a6d2f; --seiiki-bg:#f7f1e3;
+  --ok:#2f7d4f; --ok-bg:#e9f4ec;
+  --warn:#b3452e; --warn-bg:#faeee9;
+  --radius:10px;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:'Zen Kaku Gothic New',sans-serif; background:var(--bg); color:var(--ink); font-size:15px; line-height:1.6;}
+.num{font-family:'IBM Plex Mono',monospace; font-feature-settings:'tnum';}
+header{background:var(--card); border-bottom:1px solid var(--line); padding:14px 20px; display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+header h1{font-size:19px; font-weight:700; letter-spacing:.08em;}
+header .ver{font-size:12px; color:var(--faint);}
+#syncStatus{margin-left:auto; font-size:12px; color:var(--sub);}
+nav{display:flex; gap:2px; background:var(--card); border-bottom:1px solid var(--line); padding:0 12px; overflow-x:auto;}
+nav button{border:none; background:none; padding:11px 16px; font-size:14px; font-family:inherit; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap;}
+nav button.active{color:var(--ink); font-weight:700; border-bottom-color:var(--ai);}
+main{max-width:960px; margin:0 auto; padding:20px 16px 80px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:16px;}
+.card h2{font-size:15px; font-weight:700; margin-bottom:12px; letter-spacing:.04em;}
+.card h2 .hint{font-weight:400; font-size:12px; color:var(--faint); margin-left:8px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:700px){.grid2{grid-template-columns:1fr;}}
+.bignum{font-size:30px; font-weight:500;}
+.bignum small{font-size:14px; color:var(--sub); font-weight:400;}
+.label{font-size:12px; color:var(--sub); margin-bottom:2px;}
+.bar{height:10px; background:var(--bg); border-radius:5px; overflow:hidden; margin:8px 0 4px;}
+.bar>div{height:100%; border-radius:5px; transition:width .4s;}
+.barnote{font-size:12px; color:var(--sub); display:flex; justify-content:space-between;}
+.pill{display:inline-block; font-size:11px; padding:1px 8px; border-radius:10px; vertical-align:1px;}
+.pill.seiiki{background:var(--seiiki-bg); color:var(--seiiki);}
+.pill.warn{background:var(--warn-bg); color:var(--warn);}
+.pill.ok{background:var(--ok-bg); color:var(--ok);}
+.pill.ai{background:var(--ai-bg); color:var(--ai);}
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th{text-align:left; font-size:12px; color:var(--sub); font-weight:500; padding:6px 8px; border-bottom:1px solid var(--line); white-space:nowrap;}
+td{padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
+td.r,th.r{text-align:right;}
+tr:last-child td{border-bottom:none;}
+select,input[type=text],input[type=number],input[type=date],input[type=month],textarea{font-family:inherit; font-size:13.5px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); max-width:100%;}
+textarea{width:100%; min-height:110px; font-family:'IBM Plex Mono',monospace; font-size:12px;}
+button.btn{font-family:inherit; font-size:13.5px; padding:7px 14px; border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--ink); cursor:pointer;}
+button.btn:hover{background:var(--bg);}
+button.btn.primary{background:var(--ai); border-color:var(--ai); color:#fff;}
+button.btn.small{font-size:12px; padding:3px 9px;}
+button.btn.danger{color:var(--warn); border-color:var(--warn);}
+.row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.mt{margin-top:12px;} .mb{margin-bottom:12px;}
+.muted{color:var(--sub); font-size:13px;}
+.chart{display:flex; align-items:flex-end; gap:10px; height:190px; padding-top:24px;}
+.chart .col{flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:0; position:relative; height:100%;}
+.chart .seg{width:70%; max-width:56px;}
+.chart .seg.leisure{background:var(--seiiki); border-radius:4px 4px 0 0;}
+.chart .seg.base{background:var(--ai);}
+.chart .col .cap{font-size:11px; color:var(--sub); margin-top:6px;}
+.chart .col .val{font-size:11px; color:var(--sub); position:absolute; top:-20px;}
+.chart .col.first .seg.base{border-radius:4px 4px 0 0;}
+.legend{display:flex; gap:16px; font-size:12px; color:var(--sub); margin-top:10px;}
+.legend span::before{content:''; display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:5px; vertical-align:-1px;}
+.legend .l1::before{background:var(--ai);}
+.legend .l2::before{background:var(--seiiki);}
+.goalline{border-top:1px dashed var(--faint); position:relative;}
+.hidden{display:none;}
+.catbadge{font-size:11px; background:var(--bg); border-radius:4px; padding:1px 6px; color:var(--sub); white-space:nowrap;}
+footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
+.warntext{color:var(--warn);}
+.oktext{color:var(--ok);}
+</style>
+</head>
+<body>
+<header>
+  <h1>家計OS</h1>
+  <span class="ver">Ver.1.0 — アメックス支出管理</span>
+  <span id="syncStatus"></span>
+</header>
+<nav id="nav">
+  <button data-tab="dash" class="active">ダッシュボード</button>
+  <button data-tab="tx">明細</button>
+  <button data-tab="fixed">固定費・サブスク</button>
+  <button data-tab="income">収入</button>
+  <button data-tab="settings">設定</button>
+</nav>
+<main>
+  <section id="tab-dash"></section>
+  <section id="tab-tx" class="hidden"></section>
+  <section id="tab-fixed" class="hidden"></section>
+  <section id="tab-income" class="hidden"></section>
+  <section id="tab-settings" class="hidden"></section>
+</main>
+<footer>家計OS — GitHub Pages + Google Apps Script</footer>
+
+<script>
+/* ========== 定数・初期データ ========== */
+const CATS = ['食費・日用品','外食','コンビニ','交通','光熱費','通信','サブスク','投資情報','医療・学会','美容・健康','ジム','子ども','家族レジャー','買物','デジタル・アプリ','税金・公費','その他','未分類'];
+const LEISURE_CAT = '家族レジャー';
+
+const DEFAULT_MERCHANT_MAP = {
+  'フレスコ':'食費・日用品','シンセンイチバ':'食費・日用品','ギヨウムスーパー':'食費・日用品','キヨウトタカシマヤ':'食費・日用品','タカシマヤ':'買物','ヤサカ':'食費・日用品','スキヤ':'外食','マツヤ':'外食','ヨシノヤ':'外食','キリンビバレッジ':'食費・日用品','コカコーラ':'食費・日用品',
+  'ファミリーマート':'コンビニ','セブン-イレブン':'コンビニ','セブンイレブン':'コンビニ','ローソン':'コンビニ',
+  'ドトール':'外食','マクドナルド':'外食','モスバーガー':'外食','ラーメン':'外食','かごのや':'外食','イチラン':'外食','タンポポ':'外食','スシロー':'外食',
+  'ENEOS':'交通','エネオス':'交通','Suica':'交通','スイカ':'交通','阪急':'交通','タクシー':'交通','リパーク':'交通','駐車場':'交通',
+  '電気':'光熱費','水道':'光熱費','ガス':'光熱費',
+  'オプテージ':'通信','ドコモ':'通信',
+  'YOUTUBE':'サブスク','NETFLIX':'サブスク','Netflix':'サブスク','U-NEXT':'サブスク','ユーネクスト':'サブスク','ユ−ネクスト':'サブスク','SPOTIFY':'サブスク','DAZN':'サブスク','フールー':'サブスク','Audible':'サブスク','プライム会費':'サブスク','シーオージェーピー':'サブスク','アマゾンサービシーズ':'サブスク',
+  'KABUTAN':'投資情報','TRADINGVIEW':'投資情報','J-QUANTS':'投資情報','ザイ':'投資情報','IRSPEED':'投資情報','東洋経済':'投資情報','日経':'投資情報',
+  'CLAUDE':'デジタル・アプリ','ANTHROPIC':'デジタル・アプリ','iTunes':'デジタル・アプリ','DMM':'デジタル・アプリ','GOOGLE':'サブスク','AQUA VOICE':'デジタル・アプリ','WWIQTEST':'デジタル・アプリ','IKIGAI':'デジタル・アプリ',
+  '学会':'医療・学会','内科学会':'医療・学会','呼吸器':'医療・学会','がん治療':'医療・学会','メディカル':'医療・学会',
+  'LOVEST':'美容・健康','AF四条河原町':'美容・健康','afeel':'美容・健康',
+  'チヤナサブ':'ジム','COSPA':'ジム','ウエルネス':'ジム',
+  'アカチャンホンポ':'子ども','キッザニア':'子ども',
+  'ディズニー':'家族レジャー','一休':'家族レジャー','リッツ':'家族レジャー','びわこ':'家族レジャー','ホテル':'家族レジャー','アワジ':'家族レジャー','HELLO KITTY':'家族レジャー','緑水亭':'家族レジャー',
+  'アマゾン JP':'買物','ZOZOTOWN':'買物','モンベル':'買物','ワイズロード':'買物','文具':'買物',
+  'eLTAX':'税金・公費','地方税':'税金・公費'
+};
+
+const SEED_HISTORY = [
+  {cycle:'2026-02', total:509232, leisure:230540},
+  {cycle:'2026-03', total:560222, leisure:0},
+  {cycle:'2026-04', total:574681, leisure:122000},
+  {cycle:'2026-05', total:705825, leisure:191903},
+  {cycle:'2026-06', total:561365, leisure:337200}
+];
+
+const SEED_FIXED = [
+  {id:'f1', label:'家賃(シエリア京都四条河原町)', amount:190000, method:'other', category:'住居', cancel:false, active:true, note:''},
+  {id:'f2', label:'トランクルーム', amount:28000, method:'other', category:'住居', cancel:false, active:true, note:''},
+  {id:'f3', label:'娘の塾代', amount:0, method:'other', category:'子ども', cancel:false, active:true, note:'金額を入力してください'},
+  {id:'f4', label:'パーソナルジム(月換算)', amount:35200, method:'amex', category:'ジム', cancel:false, active:true, note:'隔月70,400円をアメックス払い'},
+  {id:'f5', label:'COSPAウエルネス(千紗さん)', amount:9790, method:'amex', category:'ジム', cancel:false, active:true, note:''},
+  {id:'f6', label:'エニタイムフィットネス', amount:8000, method:'other', category:'ジム', cancel:true, active:true, note:'月1回利用 → チョコザップ(3,278円)検討'},
+  {id:'f7', label:'日経新聞', amount:4277, method:'other', category:'投資情報', cancel:true, active:true, note:'ほぼ読んでいない'},
+  {id:'f8', label:'U-NEXT', amount:2639, method:'amex', category:'サブスク', cancel:true, active:true, note:'解約候補'},
+  {id:'f9', label:'Netflix', amount:1590, method:'amex', category:'サブスク', cancel:false, active:true, note:''},
+  {id:'f10', label:'YouTube Premium', amount:2280, method:'amex', category:'サブスク', cancel:false, active:true, note:''},
+  {id:'f11', label:'YouTube Member', amount:390, method:'amex', category:'サブスク', cancel:false, active:true, note:''},
+  {id:'f12', label:'Spotify', amount:1480, method:'amex', category:'サブスク', cancel:false, active:true, note:''},
+  {id:'f13', label:'DAZN', amount:1980, method:'amex', category:'サブスク', cancel:false, active:true, note:'W杯期間'},
+  {id:'f14', label:'Audible', amount:1500, method:'amex', category:'サブスク', cancel:false, active:true, note:''},
+  {id:'f15', label:'株探プレミアム', amount:2780, method:'amex', category:'投資情報', cancel:false, active:true, note:''},
+  {id:'f16', label:'ザイ投資戦略メルマガ', amount:7500, method:'amex', category:'投資情報', cancel:false, active:true, note:''},
+  {id:'f17', label:'J-Quants API', amount:1650, method:'amex', category:'投資情報', cancel:false, active:true, note:'Lightプラン'},
+  {id:'f18', label:'TradingView', amount:544, method:'amex', category:'投資情報', cancel:false, active:true, note:''},
+  {id:'f19', label:'Claude', amount:18286, method:'amex', category:'デジタル・アプリ', cancel:false, active:true, note:'4月以降増額($110)'},
+  {id:'f20', label:'AF四条河原町(定期購入)', amount:9220, method:'amex', category:'美容・健康', cancel:false, active:true, note:'毎月13日ごろ'}
+];
+
+const DEFAULT_STATE = {
+  settings: {
+    budgetRecurring: 224000,
+    leisureAnnual: 2110000,
+    cycleMode: true,
+    gasUrl: ''
+  },
+  transactions: [],
+  fixed: SEED_FIXED,
+  incomes: [],
+  merchantMap: DEFAULT_MERCHANT_MAP,
+  history: SEED_HISTORY
+};
+
+/* ========== 状態管理 ========== */
+let state = loadLocal();
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem('kakeiOS');
+    if(raw){ const s = JSON.parse(raw); return Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), s); }
+  }catch(e){ console.warn('localStorage読込失敗', e); }
+  return JSON.parse(JSON.stringify(DEFAULT_STATE));
+}
+function persist(){
+  try{ localStorage.setItem('kakeiOS', JSON.stringify(state)); }catch(e){}
+  setSync('未同期の変更あり');
+}
+function setSync(msg){ document.getElementById('syncStatus').textContent = msg; }
+
+/* ========== ユーティリティ ========== */
+function yen(n){ return (n<0?'-':'') + Math.abs(Math.round(n)).toLocaleString() + '円'; }
+function uid(){ return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function cycleOf(dateStr){
+  if(!state.settings.cycleMode) return dateStr.slice(0,7);
+  const d = new Date(dateStr + 'T00:00:00');
+  if(isNaN(d)) return dateStr.slice(0,7);
+  if(d.getDate() >= 22) d.setMonth(d.getMonth()+1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function currentCycle(){
+  const now = new Date();
+  const iso = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  return cycleOf(iso);
+}
+function categorize(merchant){
+  for(const key in state.merchantMap){
+    if(merchant.toUpperCase().includes(key.toUpperCase())) return state.merchantMap[key];
+  }
+  return '未分類';
+}
+function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ========== 集計 ========== */
+function cycleStats(cycle){
+  const tx = state.transactions.filter(t => cycleOf(t.date) === cycle);
+  let total=0, leisure=0;
+  tx.forEach(t=>{ total+=t.amount; if(t.category===LEISURE_CAT) leisure+=t.amount; });
+  return {total, leisure, base: total-leisure, count: tx.length};
+}
+function mergedHistory(){
+  const map = {};
+  state.history.forEach(h=>{ map[h.cycle] = {cycle:h.cycle, total:h.total, leisure:h.leisure, seed:true}; });
+  const cycles = new Set(state.transactions.map(t=>cycleOf(t.date)));
+  cycles.forEach(c=>{
+    const s = cycleStats(c);
+    if(s.count>0){ map[c] = {cycle:c, total:s.total, leisure:s.leisure, seed:false}; }
+  });
+  return Object.values(map).sort((a,b)=>a.cycle<b.cycle?-1:1);
+}
+function leisureYearTotal(year){
+  return mergedHistory().filter(h=>h.cycle.startsWith(year)).reduce((s,h)=>s+h.leisure,0);
+}
+
+/* ========== 描画 ========== */
+function switchTab(name){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  ['dash','tx','fixed','income','settings'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
+  });
+  render(name);
+}
+document.getElementById('nav').addEventListener('click', e=>{
+  if(e.target.dataset.tab) switchTab(e.target.dataset.tab);
+});
+
+function render(tab){
+  if(!tab || tab==='dash') renderDash();
+  if(!tab || tab==='tx') renderTx();
+  if(!tab || tab==='fixed') renderFixed();
+  if(!tab || tab==='income') renderIncome();
+  if(!tab || tab==='settings') renderSettings();
+}
+
+function renderDash(){
+  const el = document.getElementById('tab-dash');
+  const cyc = currentCycle();
+  const st = cycleStats(cyc);
+  const budget = state.settings.budgetRecurring;
+  const basePct = Math.min(100, budget>0 ? st.base/budget*100 : 0);
+  const over = st.base > budget;
+
+  const year = cyc.slice(0,4);
+  const ly = leisureYearTotal(year);
+  const lb = state.settings.leisureAnnual;
+  const lyPct = Math.min(100, lb>0 ? ly/lb*100 : 0);
+
+  const hist = mergedHistory().slice(-8);
+  const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
+
+  const monthIncome = state.incomes.filter(i=>i.month===cyc).reduce((s,i)=>s+i.amount,0);
+  const fixedOther = state.fixed.filter(f=>f.active && f.method==='other').reduce((s,f)=>s+f.amount,0);
+  const fixedAmex = state.fixed.filter(f=>f.active && f.method==='amex').reduce((s,f)=>s+f.amount,0);
+  const cancelSave = state.fixed.filter(f=>f.active && f.cancel).reduce((s,f)=>s+f.amount,0);
+
+  let chartCols = hist.map(h=>{
+    const bh = Math.round((h.total-h.leisure)/maxTotal*140);
+    const lh = Math.round(h.leisure/maxTotal*140);
+    const label = parseInt(h.cycle.slice(5,7)) + '月';
+    return `<div class="col">
+      <span class="val num">${Math.round(h.total/10000)}万</span>
+      ${lh>0?`<div class="seg leisure" style="height:${lh}px"></div>`:''}
+      <div class="seg base" style="height:${Math.max(bh,2)}px; ${lh===0?'border-radius:4px 4px 0 0;':''}"></div>
+      <span class="cap">${label}${h.seed?'':'●'}</span>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+  <div class="grid2">
+    <div class="card">
+      <h2>今月の経常支出 <span class="hint">${cyc.replace('-','年')}月請求サイクル(22日〜21日)・レジャー除く</span></h2>
+      <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
+      <div class="bar"><div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div></div>
+      <div class="barnote"><span>${st.count}件の明細</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
+      ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
+    </div>
+    <div class="card">
+      <h2>家族レジャー年間枠 <span class="pill seiiki">聖域</span> <span class="hint">${year}年</span></h2>
+      <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
+      <div class="bar"><div style="width:${lyPct}%; background:var(--seiiki)"></div></div>
+      <div class="barnote"><span>消化率 ${Math.round(lyPct)}%</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
+      <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
+    </div>
+  </div>
+  <div class="card">
+    <h2>月次推移 <span class="hint">アメックス請求額の内訳(●=明細から集計、無印=初期データ)</span></h2>
+    <div class="chart">${chartCols}</div>
+    <div class="legend"><span class="l1">経常支出</span><span class="l2">家族レジャー(聖域)</span></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h2>今月の収支メモ</h2>
+      <table>
+        <tr><td>収入(登録分)</td><td class="r num">${yen(monthIncome)}</td></tr>
+        <tr><td>アメックス外の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
+        <tr><td>アメックス内の固定費(参考)</td><td class="r num">${yen(fixedAmex)}</td></tr>
+        <tr><td>アメックス今月実績</td><td class="r num">${yen(st.total)}</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>解約候補による削減見込み</h2>
+      <div class="bignum num oktext">${yen(cancelSave)}<small> /月</small></div>
+      <p class="muted">年間換算 <span class="num">${yen(cancelSave*12)}</span></p>
+      <p class="muted mt">対象: ${state.fixed.filter(f=>f.active&&f.cancel).map(f=>esc(f.label)).join('、')||'なし'}</p>
+    </div>
+  </div>`;
+}
+
+/* ---------- 明細 ---------- */
+let txMonth = '';
+function renderTx(){
+  const el = document.getElementById('tab-tx');
+  const cycles = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().reverse();
+  if(!txMonth || (!cycles.includes(txMonth) && cycles.length)) txMonth = cycles[0] || currentCycle();
+  const tx = state.transactions.filter(t=>cycleOf(t.date)===txMonth).sort((a,b)=>a.date<b.date?1:-1);
+  const st = cycleStats(txMonth);
+
+  const catOpts = c => CATS.map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
+  const rows = tx.map(t=>`
+    <tr data-id="${t.id}">
+      <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
+      <td>${esc(t.merchant)}${t.amount>=20000 && t.category!==LEISURE_CAT?' <span class="pill warn">特別</span>':''}${t.category===LEISURE_CAT?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td class="r num">${yen(t.amount)}</td>
+      <td><select class="txcat">${catOpts(t.category)}</select></td>
+      <td><button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button></td>
+      <td><button class="btn small txdel">×</button></td>
+    </tr>`).join('');
+
+  el.innerHTML = `
+  <div class="card">
+    <h2>アメックス明細の取り込み</h2>
+    <p class="muted mb">アメックス会員サイトからダウンロードしたCSVを選択するか、明細テキストを貼り付けてください。店名から自動でカテゴリ分類されます。</p>
+    <div class="row mb">
+      <input type="file" id="csvFile" accept=".csv,.txt">
+      <button class="btn primary" id="importBtn">貼り付けテキストを取り込む</button>
+    </div>
+    <textarea id="csvPaste" placeholder="例:&#10;2026/06/16,東京ディズニーリゾート,337200&#10;ご利用日,ご利用店名,ご利用金額 のCSVヘッダー付きでもOK"></textarea>
+    <p class="muted mt" id="importMsg"></p>
+  </div>
+  <div class="card">
+    <h2>明細一覧
+      <select id="txMonthSel" style="margin-left:10px">${(cycles.length?cycles:[txMonth]).map(c=>`<option ${c===txMonth?'selected':''}>${c}</option>`).join('')}</select>
+      <span class="hint">合計 <span class="num">${yen(st.total)}</span>(経常 <span class="num">${yen(st.base)}</span> + レジャー <span class="num">${yen(st.leisure)}</span>)</span>
+    </h2>
+    <div class="row mb">
+      <input type="date" id="manDate"><input type="text" id="manMerchant" placeholder="店名・内容" style="flex:1; min-width:140px"><input type="number" id="manAmount" placeholder="金額" style="width:110px">
+      <button class="btn" id="manAdd">手動追加</button>
+    </div>
+    ${tx.length?`<div style="overflow-x:auto"><table>
+      <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th><th></th></tr>${rows}
+    </table></div>`:'<p class="muted">この月の明細はまだありません。</p>'}
+  </div>`;
+
+  el.querySelector('#txMonthSel').onchange = e=>{ txMonth = e.target.value; renderTx(); };
+  el.querySelector('#importBtn').onclick = ()=>{ importCsvText(el.querySelector('#csvPaste').value); };
+  el.querySelector('#csvFile').onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ev=>importCsvText(ev.target.result);
+    reader.readAsText(f);
+  };
+  el.querySelector('#manAdd').onclick = ()=>{
+    const d = el.querySelector('#manDate').value, m = el.querySelector('#manMerchant').value.trim(), a = parseInt(el.querySelector('#manAmount').value);
+    if(!d||!m||!a){ alert('日付・店名・金額を入力してください'); return; }
+    state.transactions.push({id:uid(), date:d, merchant:m, amount:a, category:categorize(m)});
+    txMonth = cycleOf(d); persist(); renderTx();
+  };
+  el.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const id = tr.dataset.id;
+    const t = state.transactions.find(x=>x.id===id);
+    tr.querySelector('.txcat').onchange = e=>{ t.category = e.target.value; persist(); renderTx(); };
+    tr.querySelector('.txdel').onclick = ()=>{ state.transactions = state.transactions.filter(x=>x.id!==id); persist(); renderTx(); };
+    tr.querySelector('.txlearn').onclick = ()=>{
+      const key = prompt('辞書に登録するキーワード(店名の一部)', t.merchant.slice(0,10));
+      if(key){ state.merchantMap[key.trim()] = t.category; persist(); alert(`「${key.trim()}」→「${t.category}」を登録しました。今後の取り込みで自動分類されます。`); }
+    };
+  });
+}
+
+function importCsvText(text){
+  if(!text || !text.trim()){ document.getElementById('importMsg').textContent = 'テキストが空です。'; return; }
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+  let added=0, skipped=0;
+  const existing = new Set(state.transactions.map(t=>t.date+'|'+t.merchant+'|'+t.amount));
+  for(const line of lines){
+    if(/ご利用日|日付.*金額/.test(line)) continue;
+    const cols = splitCsvLine(line);
+    if(cols.length < 3) { skipped++; continue; }
+    let dateStr = normDate(cols[0]);
+    if(!dateStr){ skipped++; continue; }
+    let amount = null, amountIdx = -1;
+    for(let i=cols.length-1;i>=1;i--){
+      const v = parseInt(cols[i].replace(/[¥,円\s"]/g,''));
+      if(!isNaN(v) && v!==0){ amount=v; amountIdx=i; break; }
+    }
+    if(amount===null || amount<0){ skipped++; continue; }
+    const merchant = cols.slice(1,amountIdx).join(' ').replace(/"/g,'').trim() || '不明';
+    const key = dateStr+'|'+merchant+'|'+amount;
+    if(existing.has(key)){ skipped++; continue; }
+    existing.add(key);
+    state.transactions.push({id:uid(), date:dateStr, merchant, amount, category:categorize(merchant)});
+    added++;
+  }
+  persist();
+  document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件: 重複・支払行・解析不能)。`;
+  if(added>0){ txMonth=''; renderTx(); document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件)。`; }
+}
+function splitCsvLine(line){
+  const out=[]; let cur='', inQ=false;
+  for(const ch of line){
+    if(ch==='"'){ inQ=!inQ; continue; }
+    if(ch===',' && !inQ){ out.push(cur); cur=''; } else cur+=ch;
+  }
+  out.push(cur);
+  return out.map(s=>s.trim());
+}
+function normDate(s){
+  s = s.replace(/"/g,'').trim();
+  let m = s.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  m = s.match(/^(\d{1,2})[\/月](\d{1,2})/);
+  if(m){ const y = new Date().getFullYear(); return y+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0'); }
+  return null;
+}
+
+/* ---------- 固定費 ---------- */
+function renderFixed(){
+  const el = document.getElementById('tab-fixed');
+  const act = state.fixed.filter(f=>f.active);
+  const totAmex = act.filter(f=>f.method==='amex').reduce((s,f)=>s+f.amount,0);
+  const totOther = act.filter(f=>f.method==='other').reduce((s,f)=>s+f.amount,0);
+  const rows = state.fixed.map(f=>`
+    <tr data-id="${f.id}" style="${f.active?'':'opacity:.45'}">
+      <td>${esc(f.label)}${f.note?`<br><span class="muted" style="font-size:11px">${esc(f.note)}</span>`:''}</td>
+      <td><span class="catbadge">${esc(f.category)}</span></td>
+      <td><span class="pill ${f.method==='amex'?'ai':'ok'}">${f.method==='amex'?'AMEX':'その他'}</span></td>
+      <td class="r num">${yen(f.amount)}</td>
+      <td class="r num muted">${yen(f.amount*12)}</td>
+      <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
+      <td><button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button></td>
+    </tr>`).join('');
+  el.innerHTML = `
+  <div class="grid2">
+    <div class="card"><div class="label">アメックス払いの固定費(月)</div><div class="bignum num">${yen(totAmex)}</div></div>
+    <div class="card"><div class="label">アメックス外の固定費(月)</div><div class="bignum num">${yen(totOther)}</div><p class="muted">家賃・塾代など明細に出ないもの</p></div>
+  </div>
+  <div class="card">
+    <h2>固定費・サブスク一覧 <span class="hint">「解約候補」にチェックするとダッシュボードの削減見込みに反映</span></h2>
+    <div style="overflow-x:auto"><table>
+      <tr><th>項目</th><th>分類</th><th>支払</th><th class="r">月額</th><th class="r">年換算</th><th>解約候補</th><th></th></tr>
+      ${rows}
+    </table></div>
+    <div class="row mt">
+      <input type="text" id="fxLabel" placeholder="項目名" style="flex:1; min-width:150px">
+      <input type="number" id="fxAmount" placeholder="月額" style="width:100px">
+      <select id="fxMethod"><option value="amex">AMEX</option><option value="other">その他</option></select>
+      <select id="fxCat">${CATS.concat('住居').map(c=>`<option>${c}</option>`).join('')}</select>
+      <button class="btn primary" id="fxAdd">追加</button>
+    </div>
+  </div>`;
+  el.querySelector('#fxAdd').onclick = ()=>{
+    const label = el.querySelector('#fxLabel').value.trim();
+    const amount = parseInt(el.querySelector('#fxAmount').value)||0;
+    if(!label){ alert('項目名を入力してください'); return; }
+    state.fixed.push({id:uid(), label, amount, method:el.querySelector('#fxMethod').value, category:el.querySelector('#fxCat').value, cancel:false, active:true, note:''});
+    persist(); renderFixed();
+  };
+  el.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const f = state.fixed.find(x=>x.id===tr.dataset.id);
+    tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
+    tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
+    tr.querySelector('.fxedit').onclick = ()=>{
+      const label = prompt('項目名', f.label); if(label===null) return;
+      const amount = prompt('月額(円)', f.amount); if(amount===null) return;
+      const note = prompt('メモ', f.note||''); if(note===null) return;
+      f.label = label.trim()||f.label; f.amount = parseInt(amount)||0; f.note = note;
+      persist(); renderFixed();
+    };
+  });
+}
+
+/* ---------- 収入 ---------- */
+function renderIncome(){
+  const el = document.getElementById('tab-income');
+  const months = [...new Set(state.incomes.map(i=>i.month))].sort().reverse();
+  const nowMonth = new Date().toISOString().slice(0,7);
+  const rows = state.incomes.sort((a,b)=>a.month<b.month?1:-1).map(i=>`
+    <tr data-id="${i.id}">
+      <td class="num">${i.month}</td><td>${esc(i.label)}</td><td class="r num">${yen(i.amount)}</td>
+      <td><button class="btn small incdel">×</button></td>
+    </tr>`).join('');
+  const monthTotals = months.map(m=>{
+    const tot = state.incomes.filter(i=>i.month===m).reduce((s,i)=>s+i.amount,0);
+    return `<tr><td class="num">${m}</td><td class="r num">${yen(tot)}</td></tr>`;
+  }).join('');
+  el.innerHTML = `
+  <div class="card">
+    <h2>収入の記録</h2>
+    <div class="row mb">
+      <input type="month" id="incMonth" value="${nowMonth}">
+      <input type="text" id="incLabel" placeholder="内容(給与、産業医、講演など)" style="flex:1; min-width:160px">
+      <input type="number" id="incAmount" placeholder="金額" style="width:120px">
+      <button class="btn primary" id="incAdd">追加</button>
+    </div>
+    ${state.incomes.length?`<table><tr><th>月</th><th>内容</th><th class="r">金額</th><th></th></tr>${rows}</table>`:'<p class="muted">まだ収入の記録がありません。給与や副収入を月ごとに登録すると、ダッシュボードの収支メモに反映されます。</p>'}
+  </div>
+  ${months.length?`<div class="card"><h2>月別合計</h2><table><tr><th>月</th><th class="r">収入合計</th></tr>${monthTotals}</table></div>`:''}`;
+  el.querySelector('#incAdd').onclick = ()=>{
+    const m = el.querySelector('#incMonth').value, l = el.querySelector('#incLabel').value.trim(), a = parseInt(el.querySelector('#incAmount').value);
+    if(!m||!l||!a){ alert('月・内容・金額を入力してください'); return; }
+    state.incomes.push({id:uid(), month:m, label:l, amount:a});
+    persist(); renderIncome();
+  };
+  el.querySelectorAll('.incdel').forEach(btn=>{
+    btn.onclick = e=>{
+      const id = e.target.closest('tr').dataset.id;
+      state.incomes = state.incomes.filter(x=>x.id!==id);
+      persist(); renderIncome();
+    };
+  });
+}
+
+/* ---------- 設定 ---------- */
+function renderSettings(){
+  const el = document.getElementById('tab-settings');
+  const s = state.settings;
+  el.innerHTML = `
+  <div class="card">
+    <h2>予算設定</h2>
+    <table>
+      <tr><td>経常支出の月間予算(レジャー除くアメックス)</td><td class="r"><input type="number" id="setBudget" value="${s.budgetRecurring}" style="width:130px"> 円</td></tr>
+      <tr><td>家族レジャーの年間枠(聖域)</td><td class="r"><input type="number" id="setLeisure" value="${s.leisureAnnual}" style="width:130px"> 円</td></tr>
+      <tr><td>請求サイクル集計(22日〜翌21日を1か月と数える)</td><td class="r"><input type="checkbox" id="setCycle" ${s.cycleMode?'checked':''}></td></tr>
+    </table>
+    <p class="muted mt">目標の考え方: レジャー年間枠211万円(月平均17.6万円)+経常22.4万円 ≒ アメックス月平均40万円</p>
+  </div>
+  <div class="card">
+    <h2>GAS同期 <span class="hint">GitHub Pagesに置いたときにGoogle Sheetsへ保存できます</span></h2>
+    <div class="row mb">
+      <input type="text" id="setGas" value="${esc(s.gasUrl)}" placeholder="GASウェブアプリのURL(https://script.google.com/macros/s/.../exec)" style="flex:1; min-width:240px">
+    </div>
+    <div class="row">
+      <button class="btn primary" id="gasSave">クラウドに保存</button>
+      <button class="btn" id="gasLoad">クラウドから読込</button>
+    </div>
+    <p class="muted mt">※このプレビュー(Claude内)ではブラウザ保存のみ有効です。GitHub Pagesに配置後、code.gsをデプロイしてURLを設定してください。</p>
+  </div>
+  <div class="card">
+    <h2>データ管理</h2>
+    <div class="row">
+      <button class="btn" id="expBtn">JSONエクスポート</button>
+      <button class="btn" id="impBtn">JSONインポート</button>
+      <input type="file" id="impFile" accept=".json" class="hidden">
+      <button class="btn danger" id="resetBtn">初期化</button>
+    </div>
+    <p class="muted mt">明細 ${state.transactions.length}件 / 固定費 ${state.fixed.length}件 / 収入 ${state.incomes.length}件 / 辞書 ${Object.keys(state.merchantMap).length}語</p>
+  </div>`;
+  el.querySelector('#setBudget').onchange = e=>{ s.budgetRecurring = parseInt(e.target.value)||0; persist(); };
+  el.querySelector('#setLeisure').onchange = e=>{ s.leisureAnnual = parseInt(e.target.value)||0; persist(); };
+  el.querySelector('#setCycle').onchange = e=>{ s.cycleMode = e.target.checked; persist(); };
+  el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); persist(); };
+  el.querySelector('#gasSave').onclick = gasSave;
+  el.querySelector('#gasLoad').onclick = gasLoad;
+  el.querySelector('#expBtn').onclick = ()=>{
+    const blob = new Blob([JSON.stringify(state,null,1)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'kakei-os-backup.json'; a.click();
+  };
+  el.querySelector('#impBtn').onclick = ()=>el.querySelector('#impFile').click();
+  el.querySelector('#impFile').onchange = e=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ev=>{
+      try{ state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(ev.target.result)); persist(); render(); alert('インポートしました'); }
+      catch(err){ alert('JSONの解析に失敗しました'); }
+    };
+    r.readAsText(f);
+  };
+  el.querySelector('#resetBtn').onclick = ()=>{
+    if(confirm('すべてのデータを初期状態に戻します。よろしいですか?')){
+      state = JSON.parse(JSON.stringify(DEFAULT_STATE)); persist(); render(); 
+    }
+  };
+}
+
+/* ---------- GAS同期 ---------- */
+async function gasSave(){
+  const url = state.settings.gasUrl;
+  if(!url){ alert('GASのURLを設定してください'); return; }
+  setSync('保存中…');
+  try{
+    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(state)});
+    await res.text();
+    setSync('保存済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){ setSync('保存失敗'); alert('保存に失敗しました: '+e.message); }
+}
+async function gasLoad(){
+  const url = state.settings.gasUrl;
+  if(!url){ alert('GASのURLを設定してください'); return; }
+  setSync('読込中…');
+  try{
+    const res = await fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now());
+    const data = await res.json();
+    if(data && typeof data === 'object' && data.settings){
+      const gasUrl = state.settings.gasUrl;
+      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data);
+      state.settings.gasUrl = gasUrl;
+      persist(); render();
+      setSync('読込済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
+    } else { setSync('クラウドにデータなし'); }
+  }catch(e){ setSync('読込失敗'); alert('読込に失敗しました: '+e.message); }
+}
+
+/* ---------- 起動 ---------- */
+render();
+setSync('ローカル保存モード');
+</script>
+</body>
+</html>
