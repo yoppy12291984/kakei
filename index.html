@@ -93,6 +93,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
   <button data-tab="tx">明細</button>
   <button data-tab="fixed">固定費・サブスク</button>
   <button data-tab="income">収入</button>
+  <button data-tab="todo">Todo</button>
   <button data-tab="settings">設定</button>
 </nav>
 <main>
@@ -100,6 +101,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
   <section id="tab-tx" class="hidden"></section>
   <section id="tab-fixed" class="hidden"></section>
   <section id="tab-income" class="hidden"></section>
+  <section id="tab-todo" class="hidden"></section>
   <section id="tab-settings" class="hidden"></section>
 </main>
 <footer>家計OS — GitHub Pages + Google Apps Script</footer>
@@ -182,7 +184,8 @@ const DEFAULT_STATE = {
   merchantMap: DEFAULT_MERCHANT_MAP,
   history: SEED_HISTORY,
   categories: DEFAULT_CATEGORIES,
-  budgetOverrides: { monthly: {}, yearly: {} }
+  budgetOverrides: { monthly: {}, yearly: {} },
+  todos: []
 };
 
 /* ========== 状態管理 ========== */
@@ -247,7 +250,7 @@ function leisureYearTotal(year){
 /* ========== 描画 ========== */
 function switchTab(name){
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
-  ['dash','tx','fixed','income','settings'].forEach(t=>{
+  ['dash','tx','fixed','income','todo','settings'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
   });
   render(name);
@@ -261,6 +264,7 @@ function render(tab){
   if(!tab || tab==='tx') renderTx();
   if(!tab || tab==='fixed') renderFixed();
   if(!tab || tab==='income') renderIncome();
+  if(!tab || tab==='todo') renderTodo();
   if(!tab || tab==='settings') renderSettings();
 }
 
@@ -272,6 +276,18 @@ function defaultDashCycle(){
   const withData = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort();
   return withData.length ? withData[withData.length-1] : cur;
 }
+function daysLeftInCycle(cyc){
+  if(cyc !== currentCycle()) return null;
+  const [y, m] = cyc.split('-').map(Number);
+  const end = new Date(y, m-1, 21, 23, 59, 59);
+  const diff = Math.ceil((end - new Date()) / 86400000);
+  return diff >= 0 ? diff : null;
+}
+function daysLeftInYear(year){
+  const now = new Date();
+  if(String(now.getFullYear()) !== String(year)) return null;
+  return Math.ceil((new Date(Number(year), 11, 31, 23, 59, 59) - now) / 86400000);
+}
 function shiftCycle(cyc, delta){
   const [y, m] = cyc.split('-').map(Number);
   const d = new Date(y, m-1+delta, 1);
@@ -281,6 +297,7 @@ function renderDash(){
   const el = document.getElementById('tab-dash');
   const cyc = dashCycle || defaultDashCycle();
   const isCurrent = cyc === currentCycle();
+  const dlCycle = daysLeftInCycle(cyc);
   const autoNote = (!dashCycle && !isCurrent) ? 'データのある最新月を表示中' : '';
   const st = cycleStats(cyc);
   const budget = budgetFor(cyc);
@@ -290,6 +307,7 @@ function renderDash(){
 
   const year = cyc.slice(0,4);
   const ly = leisureYearTotal(year);
+  const dlYear = daysLeftInYear(year);
   const lb = leisureBudgetFor(year);
   const lbOverridden = ovr().yearly[year] !== undefined;
   const lyPct = Math.min(100, lb>0 ? ly/lb*100 : 0);
@@ -302,7 +320,7 @@ function renderDash(){
     const pct = Math.min(100, amt>0 ? spent/amt*100 : 0);
     const over = spent > amt;
     return `<div class="mb">
-      <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'今月'})</span></span>
+      <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'今月'}${(isYear?dlYear:dlCycle)!==null?'・残り'+(isYear?dlYear:dlCycle)+'日':''})</span></span>
       <span class="num ${over?'warntext':''}">${yen(spent)} / ${yen(amt)}</span></div>
       <div class="bar"><div style="width:${pct}%; background:${over?'var(--warn)':(isSacred(c.name)?'var(--seiiki)':'var(--ok)')}"></div></div>
     </div>`;
@@ -398,14 +416,14 @@ function renderDash(){
       <h2>${esc(labelRec())} <span class="hint">請求サイクル(前月22日〜21日)・聖域除く${budgetOverridden?'・個別予算':''}</span></h2>
       <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
       <div class="bar"><div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div></div>
-      <div class="barnote"><span>${st.count}件の明細</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
+      <div class="barnote"><span>${st.count}件の明細${dlCycle!==null?`・締め日(21日)まで<span class="num">${dlCycle}</span>日`:``}</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
       ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
     </div>
     <div class="card">
       <h2>${esc(labelSac())} <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
       <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
       <div class="bar"><div style="width:${lyPct}%; background:var(--seiiki)"></div></div>
-      <div class="barnote"><span>消化率 ${Math.round(lyPct)}%</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
+      <div class="barnote"><span>消化率 ${Math.round(lyPct)}%${dlYear!==null?`・年末まで<span class="num">${dlYear}</span>日`:``}</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
     </div>
   </div>
@@ -434,6 +452,13 @@ function renderDash(){
     </table></div>
   </div>`:''}
   ${detailCard}
+  ${(state.todos||[]).filter(t=>!t.done).length?`<div class="card">
+    <h2>やること <span class="hint">直近のタスク(Todoタブで管理)</span></h2>
+    ${(state.todos||[]).filter(t=>!t.done).sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due<b.due?-1:1;}).slice(0,3).map(t=>{
+      const s = todoStatus(t);
+      return `<div class="barnote mb"><span>${s==='overdue'?'<span class=\'pill warn\'>期限切れ</span> ':''}${s==='soon'?'<span class=\'pill seiiki\'>まもなく</span> ':''}${esc(t.text)}</span><span class="num muted">${t.due?t.due.slice(5).replace('-','/')+'まで':''}</span></div>`;
+    }).join('')}
+  </div>`:''}
   <div class="grid2">
     <div class="card">
       <h2>収支メモ(表示中の月)</h2>
@@ -726,6 +751,83 @@ function renderIncome(){
       const id = e.target.closest('tr').dataset.id;
       state.incomes = state.incomes.filter(x=>x.id!==id);
       persist(); renderIncome();
+    };
+  });
+}
+
+/* ---------- Todo ---------- */
+function todoStatus(t){
+  if(t.done) return 'done';
+  if(!t.due) return 'nodue';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(t.due + 'T00:00:00');
+  const diff = Math.round((due - today) / 86400000);
+  if(diff < 0) return 'overdue';
+  if(diff <= 3) return 'soon';
+  return 'ok';
+}
+function renderTodo(){
+  const el = document.getElementById('tab-todo');
+  if(!state.todos) state.todos = [];
+  const undone = state.todos.filter(t=>!t.done).sort((a,b)=>{
+    if(!a.due && !b.due) return 0;
+    if(!a.due) return 1;
+    if(!b.due) return -1;
+    return a.due < b.due ? -1 : 1;
+  });
+  const done = state.todos.filter(t=>t.done).sort((a,b)=>(b.doneDate||'')<(a.doneDate||'')?-1:1);
+  const badge = t => {
+    const s = todoStatus(t);
+    if(s==='overdue') return '<span class="pill warn">期限切れ</span>';
+    if(s==='soon') return '<span class="pill seiiki">まもなく</span>';
+    return '';
+  };
+  const dueLabel = t => t.due ? `<span class="num muted" style="font-size:12px; white-space:nowrap">${t.due.slice(5).replace('-','/')}まで</span>` : '';
+  const row = t => `<tr data-id="${t.id}">
+    <td style="width:28px"><input type="checkbox" class="tdDone" ${t.done?'checked':''}></td>
+    <td style="${t.done?'text-decoration:line-through; color:var(--faint);':''}">${esc(t.text)} ${t.done?'':badge(t)}</td>
+    <td class="r">${dueLabel(t)}</td>
+    <td style="white-space:nowrap"><button class="btn small tdEdit">編集</button> <button class="btn small tdDel">×</button></td>
+  </tr>`;
+  el.innerHTML = `
+  <div class="card">
+    <h2>やることリスト <span class="hint">「いつまでに買う」「手続きする」などお金まわりのタスク管理</span></h2>
+    <div class="row mb">
+      <input type="text" id="tdText" placeholder="例: 7月中にエニタイム解約の電話" style="flex:1; min-width:180px">
+      <input type="date" id="tdDue" title="期限(任意)">
+      <button class="btn primary" id="tdAdd">追加</button>
+    </div>
+    ${undone.length?`<table>${undone.map(row).join('')}</table>`:'<p class="muted">未完了のタスクはありません。</p>'}
+  </div>
+  ${done.length?`<div class="card">
+    <h2>完了済み <span class="hint">${done.length}件</span></h2>
+    <table>${done.map(row).join('')}</table>
+  </div>`:''}`;
+  el.querySelector('#tdAdd').onclick = ()=>{
+    const text = el.querySelector('#tdText').value.trim();
+    if(!text){ alert('内容を入力してください'); return; }
+    const due = el.querySelector('#tdDue').value || null;
+    state.todos.push({id:uid(), text, due, done:false});
+    persist(); renderTodo();
+  };
+  el.querySelector('#tdText').onkeydown = e=>{ if(e.key==='Enter') el.querySelector('#tdAdd').click(); };
+  el.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const t = state.todos.find(x=>x.id===tr.dataset.id);
+    tr.querySelector('.tdDone').onchange = e=>{
+      t.done = e.target.checked;
+      t.doneDate = t.done ? new Date().toISOString().slice(0,10) : null;
+      persist(); renderTodo();
+    };
+    tr.querySelector('.tdDel').onclick = ()=>{
+      state.todos = state.todos.filter(x=>x.id!==t.id);
+      persist(); renderTodo();
+    };
+    tr.querySelector('.tdEdit').onclick = ()=>{
+      const text = prompt('内容', t.text); if(text===null) return;
+      const due = prompt('期限(YYYY-MM-DD形式、空欄で期限なし)', t.due||''); if(due===null) return;
+      t.text = text.trim() || t.text;
+      t.due = /^\d{4}-\d{2}-\d{2}$/.test(due.trim()) ? due.trim() : null;
+      persist(); renderTodo();
     };
   });
 }
