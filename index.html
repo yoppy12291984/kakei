@@ -106,8 +106,11 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 
 <script>
 /* ========== 定数・初期データ ========== */
-const CATS = ['食費・日用品','外食','コンビニ','交通','光熱費','通信','サブスク','投資情報','医療・学会','美容・健康','ジム','子ども','家族レジャー','買物','デジタル・アプリ','税金・公費','その他','未分類'];
+const CATS = ['食費・日用品','外食','コンビニ','交通','光熱費','通信','サブスク','投資情報','医療・学会','美容・健康','ジム','子ども','家族レジャー','買物','デジタル・アプリ','税金・公費','住居','その他','未分類'];
 const LEISURE_CAT = '家族レジャー';
+const DEFAULT_CATEGORIES = CATS.map(n => ({name:n, sacred: n===LEISURE_CAT}));
+function catNames(){ return state.categories.map(c=>c.name); }
+function isSacred(name){ const c = state.categories.find(x=>x.name===name); return !!(c && c.sacred); }
 
 const DEFAULT_MERCHANT_MAP = {
   'フレスコ':'食費・日用品','シンセンイチバ':'食費・日用品','ギヨウムスーパー':'食費・日用品','キヨウトタカシマヤ':'食費・日用品','タカシマヤ':'買物','ヤサカ':'食費・日用品','スキヤ':'外食','マツヤ':'外食','ヨシノヤ':'外食','キリンビバレッジ':'食費・日用品','コカコーラ':'食費・日用品',
@@ -170,7 +173,8 @@ const DEFAULT_STATE = {
   fixed: SEED_FIXED,
   incomes: [],
   merchantMap: DEFAULT_MERCHANT_MAP,
-  history: SEED_HISTORY
+  history: SEED_HISTORY,
+  categories: DEFAULT_CATEGORIES
 };
 
 /* ========== 状態管理 ========== */
@@ -215,7 +219,7 @@ function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'
 function cycleStats(cycle){
   const tx = state.transactions.filter(t => cycleOf(t.date) === cycle);
   let total=0, leisure=0;
-  tx.forEach(t=>{ total+=t.amount; if(t.category===LEISURE_CAT) leisure+=t.amount; });
+  tx.forEach(t=>{ total+=t.amount; if(isSacred(t.category)) leisure+=t.amount; });
   return {total, leisure, base: total-leisure, count: tx.length};
 }
 function mergedHistory(){
@@ -335,11 +339,11 @@ function renderTx(){
   const tx = state.transactions.filter(t=>cycleOf(t.date)===txMonth).sort((a,b)=>a.date<b.date?1:-1);
   const st = cycleStats(txMonth);
 
-  const catOpts = c => CATS.map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
+  const catOpts = c => catNames().map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
   const rows = tx.map(t=>`
     <tr data-id="${t.id}">
       <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
-      <td>${esc(t.merchant)}${t.amount>=20000 && t.category!==LEISURE_CAT?' <span class="pill warn">特別</span>':''}${t.category===LEISURE_CAT?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td>${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
       <td class="r num">${yen(t.amount)}</td>
       <td><select class="txcat">${catOpts(t.category)}</select></td>
       <td><button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button></td>
@@ -494,7 +498,7 @@ function renderFixed(){
       <input type="text" id="fxLabel" placeholder="項目名" style="flex:1; min-width:150px">
       <input type="number" id="fxAmount" placeholder="月額" style="width:100px">
       <select id="fxMethod"><option value="amex">AMEX</option><option value="other">その他</option></select>
-      <select id="fxCat">${CATS.concat('住居').map(c=>`<option>${c}</option>`).join('')}</select>
+      <select id="fxCat">${catNames().map(c=>`<option>${c}</option>`).join('')}</select>
       <button class="btn primary" id="fxAdd">追加</button>
     </div>
   </div>`;
@@ -599,6 +603,26 @@ function renderSettings(){
     <p class="muted mt">※このプレビュー(Claude内)ではブラウザ保存のみ有効です。GitHub Pagesに配置後、code.gsをデプロイしてURLを設定してください。</p>
   </div>
   <div class="card">
+    <h2>カテゴリ管理 <span class="hint">「聖域」にチェックしたカテゴリは年間枠にカウントされ、経常支出から除外されます</span></h2>
+    <div style="overflow-x:auto"><table>
+      <tr><th>カテゴリ名</th><th style="text-align:center">聖域</th><th></th></tr>
+      ${state.categories.map((c,i)=>`
+      <tr data-ci="${i}">
+        <td>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''}</td>
+        <td style="text-align:center"><input type="checkbox" class="catSacred" ${c.sacred?'checked':''} ${c.name==='未分類'?'disabled':''}></td>
+        <td style="white-space:nowrap">
+          <button class="btn small catRename" ${c.name==='未分類'?'disabled':''}>名称変更</button>
+          <button class="btn small catDel" ${c.name==='未分類'?'disabled':''}>×</button>
+        </td>
+      </tr>`).join('')}
+    </table></div>
+    <div class="row mt">
+      <input type="text" id="catNew" placeholder="新しいカテゴリ名(例: プレゼント)" style="flex:1; min-width:180px">
+      <label class="muted" style="white-space:nowrap"><input type="checkbox" id="catNewSacred"> 聖域にする</label>
+      <button class="btn primary" id="catAdd">追加</button>
+    </div>
+  </div>
+  <div class="card">
     <h2>データ管理</h2>
     <div class="row">
       <button class="btn" id="expBtn">JSONエクスポート</button>
@@ -612,6 +636,42 @@ function renderSettings(){
   el.querySelector('#setLeisure').onchange = e=>{ s.leisureAnnual = parseInt(e.target.value)||0; persist(); };
   el.querySelector('#setCycle').onchange = e=>{ s.cycleMode = e.target.checked; persist(); };
   el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); persist(); };
+  // カテゴリ管理
+  el.querySelector('#catAdd').onclick = ()=>{
+    const name = el.querySelector('#catNew').value.trim();
+    if(!name){ alert('カテゴリ名を入力してください'); return; }
+    if(catNames().includes(name)){ alert('同名のカテゴリがすでにあります'); return; }
+    state.categories.push({name, sacred: el.querySelector('#catNewSacred').checked});
+    persist(); renderSettings();
+  };
+  el.querySelectorAll('tr[data-ci]').forEach(tr=>{
+    const c = state.categories[parseInt(tr.dataset.ci)];
+    const sc = tr.querySelector('.catSacred');
+    if(sc) sc.onchange = e=>{ c.sacred = e.target.checked; persist(); renderSettings(); };
+    const rn = tr.querySelector('.catRename');
+    if(rn) rn.onclick = ()=>{
+      const name = prompt('新しいカテゴリ名', c.name);
+      if(!name || name.trim()===c.name) return;
+      const nn = name.trim();
+      if(catNames().includes(nn)){ alert('同名のカテゴリがすでにあります'); return; }
+      const old = c.name;
+      c.name = nn;
+      state.transactions.forEach(t=>{ if(t.category===old) t.category=nn; });
+      state.fixed.forEach(f=>{ if(f.category===old) f.category=nn; });
+      for(const k in state.merchantMap){ if(state.merchantMap[k]===old) state.merchantMap[k]=nn; }
+      persist(); renderSettings();
+    };
+    const dl = tr.querySelector('.catDel');
+    if(dl) dl.onclick = ()=>{
+      const cnt = state.transactions.filter(t=>t.category===c.name).length;
+      if(!confirm(`カテゴリ「${c.name}」を削除します。\n該当する明細${cnt}件は「未分類」に変更されます。よろしいですか?`)) return;
+      state.transactions.forEach(t=>{ if(t.category===c.name) t.category='未分類'; });
+      state.fixed.forEach(f=>{ if(f.category===c.name) f.category='その他'; });
+      for(const k in state.merchantMap){ if(state.merchantMap[k]===c.name) delete state.merchantMap[k]; }
+      state.categories = state.categories.filter(x=>x!==c);
+      persist(); renderSettings();
+    };
+  });
   el.querySelector('#gasSave').onclick = gasSave;
   el.querySelector('#gasLoad').onclick = gasLoad;
   el.querySelector('#expBtn').onclick = ()=>{
