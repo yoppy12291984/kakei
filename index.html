@@ -111,6 +111,11 @@ const LEISURE_CAT = '家族レジャー';
 const DEFAULT_CATEGORIES = CATS.map(n => ({name:n, sacred: n===LEISURE_CAT}));
 function catNames(){ return state.categories.map(c=>c.name); }
 function isSacred(name){ const c = state.categories.find(x=>x.name===name); return !!(c && c.sacred); }
+function ovr(){ if(!state.budgetOverrides) state.budgetOverrides = {monthly:{}, yearly:{}}; if(!state.budgetOverrides.monthly) state.budgetOverrides.monthly={}; if(!state.budgetOverrides.yearly) state.budgetOverrides.yearly={}; return state.budgetOverrides; }
+function budgetFor(cycle){ const o = ovr().monthly[cycle]; return (o !== undefined && o !== null) ? o : state.settings.budgetRecurring; }
+function leisureBudgetFor(year){ const o = ovr().yearly[year]; return (o !== undefined && o !== null) ? o : state.settings.leisureAnnual; }
+function catSpendCycle(cat, cycle){ return state.transactions.filter(t=>t.category===cat && cycleOf(t.date)===cycle).reduce((s,t)=>s+t.amount,0); }
+function catSpendYear(cat, year){ return state.transactions.filter(t=>t.category===cat && cycleOf(t.date).startsWith(year)).reduce((s,t)=>s+t.amount,0); }
 
 const DEFAULT_MERCHANT_MAP = {
   'フレスコ':'食費・日用品','シンセンイチバ':'食費・日用品','ギヨウムスーパー':'食費・日用品','キヨウトタカシマヤ':'食費・日用品','タカシマヤ':'買物','ヤサカ':'食費・日用品','スキヤ':'外食','マツヤ':'外食','ヨシノヤ':'外食','キリンビバレッジ':'食費・日用品','コカコーラ':'食費・日用品',
@@ -174,7 +179,8 @@ const DEFAULT_STATE = {
   incomes: [],
   merchantMap: DEFAULT_MERCHANT_MAP,
   history: SEED_HISTORY,
-  categories: DEFAULT_CATEGORIES
+  categories: DEFAULT_CATEGORIES,
+  budgetOverrides: { monthly: {}, yearly: {} }
 };
 
 /* ========== 状態管理 ========== */
@@ -256,18 +262,48 @@ function render(tab){
   if(!tab || tab==='settings') renderSettings();
 }
 
+let dashCycle = null;
+function defaultDashCycle(){
+  const cur = currentCycle();
+  if(cycleStats(cur).count > 0) return cur;
+  const withData = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort();
+  return withData.length ? withData[withData.length-1] : cur;
+}
+function shiftCycle(cyc, delta){
+  const [y, m] = cyc.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
 function renderDash(){
   const el = document.getElementById('tab-dash');
-  const cyc = currentCycle();
+  const cyc = dashCycle || defaultDashCycle();
+  const isCurrent = cyc === currentCycle();
+  const autoNote = (!dashCycle && !isCurrent) ? 'データのある最新月を表示中' : '';
   const st = cycleStats(cyc);
-  const budget = state.settings.budgetRecurring;
+  const budget = budgetFor(cyc);
+  const budgetOverridden = ovr().monthly[cyc] !== undefined;
   const basePct = Math.min(100, budget>0 ? st.base/budget*100 : 0);
   const over = st.base > budget;
 
   const year = cyc.slice(0,4);
   const ly = leisureYearTotal(year);
-  const lb = state.settings.leisureAnnual;
+  const lb = leisureBudgetFor(year);
+  const lbOverridden = ovr().yearly[year] !== undefined;
   const lyPct = Math.min(100, lb>0 ? ly/lb*100 : 0);
+
+  const envCats = state.categories.filter(c=>c.budget && c.budget.amount>0);
+  const envBars = envCats.map(c=>{
+    const isYear = c.budget.period==='year';
+    const spent = isYear ? catSpendYear(c.name, year) : catSpendCycle(c.name, cyc);
+    const amt = c.budget.amount;
+    const pct = Math.min(100, amt>0 ? spent/amt*100 : 0);
+    const over = spent > amt;
+    return `<div class="mb">
+      <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'今月'})</span></span>
+      <span class="num ${over?'warntext':''}">${yen(spent)} / ${yen(amt)}</span></div>
+      <div class="bar"><div style="width:${pct}%; background:${over?'var(--warn)':(isSacred(c.name)?'var(--seiiki)':'var(--ok)')}"></div></div>
+    </div>`;
+  }).join('');
 
   const hist = mergedHistory().slice(-8);
   const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
@@ -290,22 +326,35 @@ function renderDash(){
   }).join('');
 
   el.innerHTML = `
+  <div class="row mb" style="justify-content:center; align-items:center; gap:14px;">
+    <button class="btn" id="dashPrev">◀</button>
+    <div style="text-align:center">
+      <strong style="font-size:16px" class="num">${cyc.replace('-','年')}月請求</strong>${isCurrent?' <span class="pill ai">今月</span>':''}
+      ${autoNote?`<div class="muted" style="font-size:11px">${autoNote}</div>`:''}
+    </div>
+    <button class="btn" id="dashNext" ${cyc >= currentCycle() ? 'disabled':''}>▶</button>
+    ${!isCurrent?'<button class="btn small" id="dashToday">今月へ</button>':''}
+  </div>
   <div class="grid2">
     <div class="card">
-      <h2>今月の経常支出 <span class="hint">${cyc.replace('-','年')}月請求サイクル(22日〜21日)・レジャー除く</span></h2>
+      <h2>経常支出 <span class="hint">請求サイクル(前月22日〜21日)・レジャー除く${budgetOverridden?'・個別予算':''}</span></h2>
       <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
       <div class="bar"><div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div></div>
       <div class="barnote"><span>${st.count}件の明細</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
       ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
     </div>
     <div class="card">
-      <h2>家族レジャー年間枠 <span class="pill seiiki">聖域</span> <span class="hint">${year}年</span></h2>
+      <h2>家族レジャー年間枠 <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
       <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
       <div class="bar"><div style="width:${lyPct}%; background:var(--seiiki)"></div></div>
       <div class="barnote"><span>消化率 ${Math.round(lyPct)}%</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
     </div>
   </div>
+  ${envCats.length?`<div class="card">
+    <h2>マイ枠 <span class="hint">カテゴリ別の予算枠(設定タブのカテゴリ管理で作成・編集)</span></h2>
+    ${envBars}
+  </div>`:''}
   <div class="card">
     <h2>月次推移 <span class="hint">アメックス請求額の内訳(●=明細から集計、無印=初期データ)</span></h2>
     <div class="chart">${chartCols}</div>
@@ -313,12 +362,12 @@ function renderDash(){
   </div>
   <div class="grid2">
     <div class="card">
-      <h2>今月の収支メモ</h2>
+      <h2>収支メモ(表示中の月)</h2>
       <table>
         <tr><td>収入(登録分)</td><td class="r num">${yen(monthIncome)}</td></tr>
         <tr><td>アメックス外の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
         <tr><td>アメックス内の固定費(参考)</td><td class="r num">${yen(fixedAmex)}</td></tr>
-        <tr><td>アメックス今月実績</td><td class="r num">${yen(st.total)}</td></tr>
+        <tr><td>アメックス実績(表示中の月)</td><td class="r num">${yen(st.total)}</td></tr>
       </table>
     </div>
     <div class="card">
@@ -328,6 +377,11 @@ function renderDash(){
       <p class="muted mt">対象: ${state.fixed.filter(f=>f.active&&f.cancel).map(f=>esc(f.label)).join('、')||'なし'}</p>
     </div>
   </div>`;
+  el.querySelector('#dashPrev').onclick = ()=>{ dashCycle = shiftCycle(cyc, -1); renderDash(); };
+  const nx = el.querySelector('#dashNext');
+  if(nx) nx.onclick = ()=>{ dashCycle = shiftCycle(cyc, 1); renderDash(); };
+  const td = el.querySelector('#dashToday');
+  if(td) td.onclick = ()=>{ dashCycle = currentCycle(); renderDash(); };
 }
 
 /* ---------- 明細 ---------- */
@@ -605,6 +659,30 @@ function renderSettings(){
       <tr><td>請求サイクル集計(22日〜翌21日を1か月と数える)</td><td class="r"><input type="checkbox" id="setCycle" ${s.cycleMode?'checked':''}></td></tr>
     </table>
     <p class="muted mt">目標の考え方: レジャー年間枠211万円(月平均17.6万円)+経常22.4万円 ≒ アメックス月平均40万円</p>
+    <h2 class="mt">月別の個別予算 <span class="hint">指定した月だけ経常予算を上書き(ボーナス月など)</span></h2>
+    ${Object.keys(ovr().monthly).length?`<table class="mb">
+      <tr><th>月</th><th class="r">経常予算</th><th></th></tr>
+      ${Object.keys(ovr().monthly).sort().map(m=>`
+      <tr><td class="num">${m}</td><td class="r num">${yen(ovr().monthly[m])}</td>
+      <td><button class="btn small ovmDel" data-m="${m}">×</button></td></tr>`).join('')}
+    </table>`:'<p class="muted mb">個別設定なし(すべて基本値)</p>'}
+    <div class="row mb">
+      <input type="month" id="ovmMonth">
+      <input type="number" id="ovmAmount" placeholder="予算額" style="width:120px">
+      <button class="btn" id="ovmAdd">追加・更新</button>
+    </div>
+    <h2 class="mt">年別のレジャー枠 <span class="hint">指定した年だけ聖域の年間枠を上書き</span></h2>
+    ${Object.keys(ovr().yearly).length?`<table class="mb">
+      <tr><th>年</th><th class="r">年間枠</th><th></th></tr>
+      ${Object.keys(ovr().yearly).sort().map(y=>`
+      <tr><td class="num">${y}年</td><td class="r num">${yen(ovr().yearly[y])}</td>
+      <td><button class="btn small ovyDel" data-y="${y}">×</button></td></tr>`).join('')}
+    </table>`:'<p class="muted mb">個別設定なし(すべて基本値)</p>'}
+    <div class="row">
+      <input type="number" id="ovyYear" placeholder="年(例: 2027)" style="width:120px" min="2020" max="2100">
+      <input type="number" id="ovyAmount" placeholder="年間枠" style="width:130px">
+      <button class="btn" id="ovyAdd">追加・更新</button>
+    </div>
   </div>
   <div class="card">
     <h2>GAS同期 <span class="hint">GitHub Pagesに置いたときにGoogle Sheetsへ保存できます</span></h2>
@@ -620,11 +698,12 @@ function renderSettings(){
   <div class="card">
     <h2>カテゴリ管理 <span class="hint">「聖域」にチェックしたカテゴリは年間枠にカウントされ、経常支出から除外されます</span></h2>
     <div style="overflow-x:auto"><table>
-      <tr><th>カテゴリ名</th><th style="text-align:center">聖域</th><th></th></tr>
+      <tr><th>カテゴリ名</th><th style="text-align:center">聖域</th><th>枠(予算)</th><th></th></tr>
       ${state.categories.map((c,i)=>`
       <tr data-ci="${i}">
         <td>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''}</td>
         <td style="text-align:center"><input type="checkbox" class="catSacred" ${c.sacred?'checked':''} ${c.name==='未分類'?'disabled':''}></td>
+        <td class="num" style="white-space:nowrap">${c.budget&&c.budget.amount>0?(c.budget.period==='year'?'年 ':'月 ')+yen(c.budget.amount):'<span class="muted">—</span>'} <button class="btn small catBudget">枠</button></td>
         <td style="white-space:nowrap">
           <button class="btn small catUp" ${i===0?'disabled':''}>↑</button>
           <button class="btn small catDown" ${i===state.categories.length-1?'disabled':''}>↓</button>
@@ -652,6 +731,25 @@ function renderSettings(){
   el.querySelector('#setBudget').onchange = e=>{ s.budgetRecurring = parseInt(e.target.value)||0; persist(); };
   el.querySelector('#setLeisure').onchange = e=>{ s.leisureAnnual = parseInt(e.target.value)||0; persist(); };
   el.querySelector('#setCycle').onchange = e=>{ s.cycleMode = e.target.checked; persist(); };
+  // 月別・年別の個別予算
+  el.querySelector('#ovmAdd').onclick = ()=>{
+    const m = el.querySelector('#ovmMonth').value;
+    const a = parseInt(el.querySelector('#ovmAmount').value);
+    if(!m || isNaN(a)){ alert('月と予算額を入力してください'); return; }
+    ovr().monthly[m] = a; persist(); renderSettings();
+  };
+  el.querySelectorAll('.ovmDel').forEach(b=>{
+    b.onclick = ()=>{ delete ovr().monthly[b.dataset.m]; persist(); renderSettings(); };
+  });
+  el.querySelector('#ovyAdd').onclick = ()=>{
+    const y = el.querySelector('#ovyYear').value.trim();
+    const a = parseInt(el.querySelector('#ovyAmount').value);
+    if(!/^\d{4}$/.test(y) || isNaN(a)){ alert('年(4桁)と年間枠を入力してください'); return; }
+    ovr().yearly[y] = a; persist(); renderSettings();
+  };
+  el.querySelectorAll('.ovyDel').forEach(b=>{
+    b.onclick = ()=>{ delete ovr().yearly[b.dataset.y]; persist(); renderSettings(); };
+  });
   el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); persist(); };
   // カテゴリ管理
   el.querySelector('#catAdd').onclick = ()=>{
@@ -678,6 +776,17 @@ function renderSettings(){
     };
     const sc = tr.querySelector('.catSacred');
     if(sc) sc.onchange = e=>{ c.sacred = e.target.checked; persist(); renderSettings(); };
+    const bd = tr.querySelector('.catBudget');
+    if(bd) bd.onclick = ()=>{
+      const cur = c.budget && c.budget.amount ? c.budget.amount : '';
+      const a = prompt(`「${c.name}」の枠の金額(円)を入力してください。\n0または空欄で枠を解除します。`, cur);
+      if(a===null) return;
+      const amount = parseInt(a);
+      if(!amount || amount<=0){ delete c.budget; persist(); renderSettings(); return; }
+      const isMonth = confirm('この枠の期間を選んでください。\n\nOK = 月間の枠(毎月リセット)\nキャンセル = 年間の枠(1年で管理)');
+      c.budget = { period: isMonth?'month':'year', amount };
+      persist(); renderSettings();
+    };
     const rn = tr.querySelector('.catRename');
     if(rn) rn.onclick = ()=>{
       const name = prompt('新しいカテゴリ名', c.name);
