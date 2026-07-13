@@ -611,6 +611,8 @@ function renderSettings(){
         <td>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''}</td>
         <td style="text-align:center"><input type="checkbox" class="catSacred" ${c.sacred?'checked':''} ${c.name==='未分類'?'disabled':''}></td>
         <td style="white-space:nowrap">
+          <button class="btn small catUp" ${i===0?'disabled':''}>↑</button>
+          <button class="btn small catDown" ${i===state.categories.length-1?'disabled':''}>↓</button>
           <button class="btn small catRename" ${c.name==='未分類'?'disabled':''}>名称変更</button>
           <button class="btn small catDel" ${c.name==='未分類'?'disabled':''}>×</button>
         </td>
@@ -645,7 +647,20 @@ function renderSettings(){
     persist(); renderSettings();
   };
   el.querySelectorAll('tr[data-ci]').forEach(tr=>{
-    const c = state.categories[parseInt(tr.dataset.ci)];
+    const idx = parseInt(tr.dataset.ci);
+    const c = state.categories[idx];
+    const up = tr.querySelector('.catUp');
+    if(up) up.onclick = ()=>{
+      if(idx===0) return;
+      [state.categories[idx-1], state.categories[idx]] = [state.categories[idx], state.categories[idx-1]];
+      persist(); renderSettings();
+    };
+    const dn = tr.querySelector('.catDown');
+    if(dn) dn.onclick = ()=>{
+      if(idx===state.categories.length-1) return;
+      [state.categories[idx+1], state.categories[idx]] = [state.categories[idx], state.categories[idx+1]];
+      persist(); renderSettings();
+    };
     const sc = tr.querySelector('.catSacred');
     if(sc) sc.onchange = e=>{ c.sacred = e.target.checked; persist(); renderSettings(); };
     const rn = tr.querySelector('.catRename');
