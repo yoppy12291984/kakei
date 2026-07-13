@@ -114,6 +114,8 @@ function isSacred(name){ const c = state.categories.find(x=>x.name===name); retu
 function ovr(){ if(!state.budgetOverrides) state.budgetOverrides = {monthly:{}, yearly:{}}; if(!state.budgetOverrides.monthly) state.budgetOverrides.monthly={}; if(!state.budgetOverrides.yearly) state.budgetOverrides.yearly={}; return state.budgetOverrides; }
 function budgetFor(cycle){ const o = ovr().monthly[cycle]; return (o !== undefined && o !== null) ? o : state.settings.budgetRecurring; }
 function leisureBudgetFor(year){ const o = ovr().yearly[year]; return (o !== undefined && o !== null) ? o : state.settings.leisureAnnual; }
+function labelRec(){ return state.settings.labelRecurring || '経常支出'; }
+function labelSac(){ return state.settings.labelSacred || '家族レジャー年間枠'; }
 function catSpendCycle(cat, cycle){ return state.transactions.filter(t=>t.category===cat && cycleOf(t.date)===cycle).reduce((s,t)=>s+t.amount,0); }
 function catSpendYear(cat, year){ return state.transactions.filter(t=>t.category===cat && cycleOf(t.date).startsWith(year)).reduce((s,t)=>s+t.amount,0); }
 
@@ -337,14 +339,14 @@ function renderDash(){
   </div>
   <div class="grid2">
     <div class="card">
-      <h2>経常支出 <span class="hint">請求サイクル(前月22日〜21日)・レジャー除く${budgetOverridden?'・個別予算':''}</span></h2>
+      <h2>${esc(labelRec())} <span class="hint">請求サイクル(前月22日〜21日)・聖域除く${budgetOverridden?'・個別予算':''}</span></h2>
       <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
       <div class="bar"><div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div></div>
       <div class="barnote"><span>${st.count}件の明細</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
       ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
     </div>
     <div class="card">
-      <h2>家族レジャー年間枠 <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
+      <h2>${esc(labelSac())} <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
       <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
       <div class="bar"><div style="width:${lyPct}%; background:var(--seiiki)"></div></div>
       <div class="barnote"><span>消化率 ${Math.round(lyPct)}%</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
@@ -358,7 +360,7 @@ function renderDash(){
   <div class="card">
     <h2>月次推移 <span class="hint">アメックス請求額の内訳(●=明細から集計、無印=初期データ)</span></h2>
     <div class="chart">${chartCols}</div>
-    <div class="legend"><span class="l1">経常支出</span><span class="l2">家族レジャー(聖域)</span></div>
+    <div class="legend"><span class="l1">経常支出</span><span class="l2">聖域カテゴリ分</span></div>
   </div>
   <div class="grid2">
     <div class="card">
@@ -654,8 +656,10 @@ function renderSettings(){
   <div class="card">
     <h2>予算設定</h2>
     <table>
-      <tr><td>経常支出の月間予算(レジャー除くアメックス)</td><td class="r"><input type="number" id="setBudget" value="${s.budgetRecurring}" style="width:130px"> 円</td></tr>
-      <tr><td>家族レジャーの年間枠(聖域)</td><td class="r"><input type="number" id="setLeisure" value="${s.leisureAnnual}" style="width:130px"> 円</td></tr>
+      <tr><td>「${esc(labelRec())}」の月間予算(聖域除くアメックス)</td><td class="r"><input type="number" id="setBudget" value="${s.budgetRecurring}" style="width:130px"> 円</td></tr>
+      <tr><td>「${esc(labelSac())}」の年間枠(聖域)</td><td class="r"><input type="number" id="setLeisure" value="${s.leisureAnnual}" style="width:130px"> 円</td></tr>
+      <tr><td>経常予算の表示名</td><td class="r"><input type="text" id="setLabelRec" value="${esc(labelRec())}" style="width:180px"></td></tr>
+      <tr><td>聖域枠の表示名</td><td class="r"><input type="text" id="setLabelSac" value="${esc(labelSac())}" style="width:180px"></td></tr>
       <tr><td>請求サイクル集計(22日〜翌21日を1か月と数える)</td><td class="r"><input type="checkbox" id="setCycle" ${s.cycleMode?'checked':''}></td></tr>
     </table>
     <p class="muted mt">目標の考え方: レジャー年間枠211万円(月平均17.6万円)+経常22.4万円 ≒ アメックス月平均40万円</p>
@@ -731,6 +735,8 @@ function renderSettings(){
   el.querySelector('#setBudget').onchange = e=>{ s.budgetRecurring = parseInt(e.target.value)||0; persist(); };
   el.querySelector('#setLeisure').onchange = e=>{ s.leisureAnnual = parseInt(e.target.value)||0; persist(); };
   el.querySelector('#setCycle').onchange = e=>{ s.cycleMode = e.target.checked; persist(); };
+  el.querySelector('#setLabelRec').onchange = e=>{ s.labelRecurring = e.target.value.trim() || '経常支出'; persist(); renderSettings(); };
+  el.querySelector('#setLabelSac').onchange = e=>{ s.labelSacred = e.target.value.trim() || '家族レジャー年間枠'; persist(); renderSettings(); };
   // 月別・年別の個別予算
   el.querySelector('#ovmAdd').onclick = ()=>{
     const m = el.querySelector('#ovmMonth').value;
