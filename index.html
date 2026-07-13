@@ -473,7 +473,7 @@ function renderFixed(){
       <td class="r num">${yen(f.amount)}</td>
       <td class="r num muted">${yen(f.amount*12)}</td>
       <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
-      <td style="white-space:nowrap"><button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
+      <td style="white-space:nowrap"><button class="btn small fxup" ${fxSort.key?'disabled':''} title="${fxSort.key?'見出しソート解除後に使えます':''}">↑</button> <button class="btn small fxdown" ${fxSort.key?'disabled':''}>↓</button> <button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
     </tr>`).join('');
   el.innerHTML = `
   <div class="grid2">
@@ -505,7 +505,12 @@ function renderFixed(){
   el.querySelectorAll('.fxsort').forEach(th=>{
     th.onclick = ()=>{
       const k = th.dataset.key;
-      if(fxSort.key === k){ fxSort.dir *= -1; } else { fxSort = {key:k, dir: k==='amount'||k==='cancel' ? -1 : 1}; }
+      if(fxSort.key === k){
+        if(!fxSort.flipped){ fxSort.dir *= -1; fxSort.flipped = true; }
+        else { fxSort = {key:null, dir:1}; }
+      } else {
+        fxSort = {key:k, dir: k==='amount'||k==='cancel' ? -1 : 1, flipped:false};
+      }
       renderFixed();
     };
   });
@@ -518,6 +523,16 @@ function renderFixed(){
   };
   el.querySelectorAll('tr[data-id]').forEach(tr=>{
     const f = state.fixed.find(x=>x.id===tr.dataset.id);
+    const up = tr.querySelector('.fxup');
+    if(up) up.onclick = ()=>{
+      const i = state.fixed.indexOf(f);
+      if(i>0){ [state.fixed[i-1], state.fixed[i]] = [state.fixed[i], state.fixed[i-1]]; persist(); renderFixed(); }
+    };
+    const dn = tr.querySelector('.fxdown');
+    if(dn) dn.onclick = ()=>{
+      const i = state.fixed.indexOf(f);
+      if(i < state.fixed.length-1){ [state.fixed[i+1], state.fixed[i]] = [state.fixed[i], state.fixed[i+1]]; persist(); renderFixed(); }
+    };
     tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
     tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
     tr.querySelector('.fxdel').onclick = ()=>{
