@@ -326,6 +326,26 @@ function renderDash(){
     </tr>`;
   }).join('');
 
+  // カテゴリ×月の推移マトリクス(直近6サイクル)
+  const matCycles = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().slice(-6);
+  const matData = {};
+  state.transactions.forEach(t=>{
+    const c = cycleOf(t.date);
+    if(!matCycles.includes(c)) return;
+    if(!matData[t.category]) matData[t.category] = {};
+    matData[t.category][c] = (matData[t.category][c]||0) + t.amount;
+  });
+  const matSum = cat => matCycles.reduce((s,c)=>s+(matData[cat][c]||0),0);
+  const matCats = Object.keys(matData).sort((a,b)=>matSum(b)-matSum(a));
+  const matColTotals = matCycles.map(c=>matCats.reduce((s,cat)=>s+(matData[cat][c]||0),0));
+  const fmtCell = v => v ? (v>=10000 ? (v/10000).toFixed(1)+'万' : v.toLocaleString()) : '<span style="color:var(--faint)">—</span>';
+  const matHead = matCycles.map(c=>`<th class="r" style="${c===cyc?'color:var(--ai); font-weight:700;':''}">${parseInt(c.slice(5,7))}月</th>`).join('');
+  const matRows = matCats.map(cat=>`<tr>
+    <td style="white-space:nowrap">${esc(cat)}${isSacred(cat)?' <span class="pill seiiki">聖</span>':''}</td>
+    ${matCycles.map(c=>`<td class="r num" style="${c===cyc?'background:var(--ai-bg);':''}">${fmtCell(matData[cat][c]||0)}</td>`).join('')}
+  </tr>`).join('');
+  const matTotalRow = `<tr style="border-top:2px solid var(--line)"><td><strong>合計</strong></td>${matCycles.map((c,i)=>`<td class="r num" style="${c===cyc?'background:var(--ai-bg);':''}"><strong>${fmtCell(matColTotals[i])}</strong></td>`).join('')}</tr>`;
+
   const hist = mergedHistory().slice(-8);
   const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
 
@@ -386,6 +406,14 @@ function renderDash(){
     <div style="overflow-x:auto"><table>
       <tr><th>カテゴリ</th><th></th><th class="r">金額</th><th class="r">前月比</th></tr>
       ${catRows}
+    </table></div>
+  </div>`:''}
+  ${matCats.length?`<div class="card">
+    <h2>カテゴリ推移 <span class="hint">直近${matCycles.length}か月・請求月ベース・青列=表示中の月・単位は円(万=1万円)</span></h2>
+    <div style="overflow-x:auto"><table style="font-size:12.5px">
+      <tr><th>カテゴリ</th>${matHead}</tr>
+      ${matRows}
+      ${matTotalRow}
     </table></div>
   </div>`:''}
   <div class="grid2">
