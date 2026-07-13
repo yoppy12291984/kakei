@@ -444,12 +444,24 @@ function normDate(s){
 }
 
 /* ---------- 固定費 ---------- */
+let fxSort = {key:null, dir:1};
 function renderFixed(){
   const el = document.getElementById('tab-fixed');
   const act = state.fixed.filter(f=>f.active);
   const totAmex = act.filter(f=>f.method==='amex').reduce((s,f)=>s+f.amount,0);
   const totOther = act.filter(f=>f.method==='other').reduce((s,f)=>s+f.amount,0);
-  const rows = state.fixed.map(f=>`
+  let list = [...state.fixed];
+  if(fxSort.key){
+    list.sort((a,b)=>{
+      if(a.active !== b.active) return a.active ? -1 : 1;
+      let va = a[fxSort.key], vb = b[fxSort.key];
+      if(fxSort.key==='cancel'){ va = a.cancel?1:0; vb = b.cancel?1:0; }
+      if(typeof va === 'string') return va.localeCompare(vb,'ja') * fxSort.dir;
+      return (va - vb) * fxSort.dir;
+    });
+  }
+  const arrow = k => fxSort.key===k ? (fxSort.dir===1?' ▲':' ▼') : '';
+  const rows = list.map(f=>`
     <tr data-id="${f.id}" style="${f.active?'':'opacity:.45'}">
       <td>${esc(f.label)}${f.note?`<br><span class="muted" style="font-size:11px">${esc(f.note)}</span>`:''}</td>
       <td><span class="catbadge">${esc(f.category)}</span></td>
@@ -457,7 +469,7 @@ function renderFixed(){
       <td class="r num">${yen(f.amount)}</td>
       <td class="r num muted">${yen(f.amount*12)}</td>
       <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
-      <td><button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button></td>
+      <td style="white-space:nowrap"><button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
     </tr>`).join('');
   el.innerHTML = `
   <div class="grid2">
@@ -467,7 +479,15 @@ function renderFixed(){
   <div class="card">
     <h2>固定費・サブスク一覧 <span class="hint">「解約候補」にチェックするとダッシュボードの削減見込みに反映</span></h2>
     <div style="overflow-x:auto"><table>
-      <tr><th>項目</th><th>分類</th><th>支払</th><th class="r">月額</th><th class="r">年換算</th><th>解約候補</th><th></th></tr>
+      <tr>
+        <th class="fxsort" data-key="label" style="cursor:pointer">項目${arrow('label')}</th>
+        <th class="fxsort" data-key="category" style="cursor:pointer">分類${arrow('category')}</th>
+        <th class="fxsort" data-key="method" style="cursor:pointer">支払${arrow('method')}</th>
+        <th class="r fxsort" data-key="amount" style="cursor:pointer">月額${arrow('amount')}</th>
+        <th class="r">年換算</th>
+        <th class="fxsort" data-key="cancel" style="cursor:pointer">解約候補${arrow('cancel')}</th>
+        <th></th>
+      </tr>
       ${rows}
     </table></div>
     <div class="row mt">
@@ -478,6 +498,13 @@ function renderFixed(){
       <button class="btn primary" id="fxAdd">追加</button>
     </div>
   </div>`;
+  el.querySelectorAll('.fxsort').forEach(th=>{
+    th.onclick = ()=>{
+      const k = th.dataset.key;
+      if(fxSort.key === k){ fxSort.dir *= -1; } else { fxSort = {key:k, dir: k==='amount'||k==='cancel' ? -1 : 1}; }
+      renderFixed();
+    };
+  });
   el.querySelector('#fxAdd').onclick = ()=>{
     const label = el.querySelector('#fxLabel').value.trim();
     const amount = parseInt(el.querySelector('#fxAmount').value)||0;
@@ -489,6 +516,12 @@ function renderFixed(){
     const f = state.fixed.find(x=>x.id===tr.dataset.id);
     tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
     tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
+    tr.querySelector('.fxdel').onclick = ()=>{
+      if(confirm(`「${f.label}」を削除します。よろしいですか?\n(一時的に集計から外すだけなら「停止」がおすすめです)`)){
+        state.fixed = state.fixed.filter(x=>x.id!==f.id);
+        persist(); renderFixed();
+      }
+    };
     tr.querySelector('.fxedit').onclick = ()=>{
       const label = prompt('項目名', f.label); if(label===null) return;
       const amount = prompt('月額(円)', f.amount); if(amount===null) return;
