@@ -307,6 +307,25 @@ function renderDash(){
     </div>`;
   }).join('');
 
+  const catTotals = {};
+  state.transactions.filter(t=>cycleOf(t.date)===cyc).forEach(t=>{ catTotals[t.category]=(catTotals[t.category]||0)+t.amount; });
+  const prevCyc = shiftCycle(cyc, -1);
+  const prevTotals = {};
+  state.transactions.filter(t=>cycleOf(t.date)===prevCyc).forEach(t=>{ prevTotals[t.category]=(prevTotals[t.category]||0)+t.amount; });
+  const catEntries = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+  const catMax = catEntries.length ? catEntries[0][1] : 1;
+  const hasPrev = Object.keys(prevTotals).length > 0;
+  const catRows = catEntries.map(([name, v])=>{
+    const diff = v - (prevTotals[name]||0);
+    const diffHtml = hasPrev ? `<span class="num ${diff>0?'warntext':(diff<0?'oktext':'')}" style="font-size:12px">${diff>0?'+':''}${diff===0?'±0':diff.toLocaleString()}</span>` : '';
+    return `<tr>
+      <td style="width:32%">${esc(name)}${isSacred(name)?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td><div class="bar" style="margin:0"><div style="width:${Math.round(v/catMax*100)}%; background:${isSacred(name)?'var(--seiiki)':'var(--ai)'}"></div></div></td>
+      <td class="r num" style="white-space:nowrap">${yen(v)}</td>
+      <td class="r" style="white-space:nowrap">${diffHtml}</td>
+    </tr>`;
+  }).join('');
+
   const hist = mergedHistory().slice(-8);
   const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
 
@@ -362,6 +381,13 @@ function renderDash(){
     <div class="chart">${chartCols}</div>
     <div class="legend"><span class="l1">経常支出</span><span class="l2">聖域カテゴリ分</span></div>
   </div>
+  ${catEntries.length?`<div class="card">
+    <h2>カテゴリ別内訳 <span class="hint">${cyc.replace('-','年')}月請求・前月比は${hasPrev?prevCyc.replace('-','年')+'月請求との差':'前月データなし'}</span></h2>
+    <div style="overflow-x:auto"><table>
+      <tr><th>カテゴリ</th><th></th><th class="r">金額</th><th class="r">前月比</th></tr>
+      ${catRows}
+    </table></div>
+  </div>`:''}
   <div class="grid2">
     <div class="card">
       <h2>収支メモ(表示中の月)</h2>
