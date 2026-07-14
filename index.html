@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.1.6 — 未来枠対応</span>
+  <span class="ver">Ver.1.8 — 明細編集対応</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -421,10 +421,10 @@ function renderDash(){
   <div class="row mb" style="justify-content:center; align-items:center; gap:14px;">
     <button class="btn" id="dashPrev">◀</button>
     <div style="text-align:center">
-      <strong style="font-size:16px" class="num">${cyc.replace('-','年')}月請求</strong>${isCurrent?' <span class="pill ai">今月</span>':''}
+      <strong style="font-size:16px" class="num">${cyc.replace('-','年')}月請求</strong>${isCurrent?' <span class="pill ai">今月</span>':''}${cyc>currentCycle()?' <span class="pill seiiki">未来(予定のみ)</span>':''}
       ${autoNote?`<div class="muted" style="font-size:11px">${autoNote}</div>`:''}
     </div>
-    <button class="btn" id="dashNext" ${cyc >= currentCycle() ? 'disabled':''}>▶</button>
+    <button class="btn" id="dashNext">▶</button>
     ${!isCurrent?'<button class="btn small" id="dashToday">今月へ</button>':''}
   </div>
   <div class="grid2">
@@ -533,8 +533,7 @@ function renderTx(){
       <td>${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
       <td class="r num">${yen(t.amount)}</td>
       <td><select class="txcat">${catOpts(t.category)}</select></td>
-      <td><button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button></td>
-      <td><button class="btn small txdel">×</button></td>
+      <td style="white-space:nowrap"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
     </tr>`).join('');
 
   el.innerHTML = `
@@ -583,7 +582,7 @@ function renderTx(){
       <button class="btn danger" id="monthDel">この月を一括削除</button>
     </div>
     ${tx.length?`<div style="overflow-x:auto"><table>
-      <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th><th></th></tr>${rows}
+      <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th></tr>${rows}
     </table></div>`:'<p class="muted">この月の明細はまだありません。</p>'}
   </div>`;
 
@@ -628,6 +627,16 @@ function renderTx(){
     const t = state.transactions.find(x=>x.id===id);
     tr.querySelector('.txcat').onchange = e=>{ t.category = e.target.value; persist(); renderTx(); };
     tr.querySelector('.txdel').onclick = ()=>{ state.transactions = state.transactions.filter(x=>x.id!==id); persist(); renderTx(); };
+    tr.querySelector('.txedit').onclick = ()=>{
+      const d = prompt('日付(YYYY-MM-DD)', t.date); if(d===null) return;
+      const m = prompt('店名・内容', t.merchant); if(m===null) return;
+      const a = prompt('金額(円)', t.amount); if(a===null) return;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(d.trim())) t.date = d.trim();
+      t.merchant = m.trim() || t.merchant;
+      const av = parseInt(a); if(av && av>0) t.amount = av;
+      txMonth = cycleOf(t.date);
+      persist(); renderTx();
+    };
     tr.querySelector('.txlearn').onclick = ()=>{
       const key = prompt('辞書に登録するキーワード(店名の一部)', t.merchant.slice(0,10));
       if(key){ state.merchantMap[key.trim()] = t.category; persist(); alert(`「${key.trim()}」→「${t.category}」を登録しました。今後の取り込みで自動分類されます。`); }
