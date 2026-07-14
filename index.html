@@ -532,6 +532,7 @@ function renderTx(){
     <div class="row mb">
       <input type="date" id="manDate"><input type="text" id="manMerchant" placeholder="店名・内容" style="flex:1; min-width:140px"><input type="number" id="manAmount" placeholder="金額" style="width:110px">
       <button class="btn" id="manAdd">手動追加</button>
+      <button class="btn danger" id="monthDel">この月を一括削除</button>
     </div>
     ${tx.length?`<div style="overflow-x:auto"><table>
       <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th><th></th></tr>${rows}
@@ -551,6 +552,13 @@ function renderTx(){
     if(!d||!m||!a){ alert('日付・店名・金額を入力してください'); return; }
     state.transactions.push({id:uid(), date:d, merchant:m, amount:a, category:categorize(m)});
     txMonth = cycleOf(d); persist(); renderTx();
+  };
+  el.querySelector('#monthDel').onclick = ()=>{
+    const cnt = state.transactions.filter(t=>cycleOf(t.date)===txMonth).length;
+    if(!cnt){ alert('この月に明細はありません'); return; }
+    if(!confirm(`${txMonth}請求の明細${cnt}件をすべて削除します。\n速報データを確定データ(PDF版)に置き換える前の整理などに使ってください。\n\n本当に削除しますか?`)) return;
+    state.transactions = state.transactions.filter(t=>cycleOf(t.date)!==txMonth);
+    persist(); renderTx();
   };
   el.querySelectorAll('tr[data-id]').forEach(tr=>{
     const id = tr.dataset.id;
@@ -631,7 +639,7 @@ function renderFixed(){
   const rows = list.map(f=>`
     <tr data-id="${f.id}" style="${f.active?'':'opacity:.45'}">
       <td>${esc(f.label)}${f.note?`<br><span class="muted" style="font-size:11px">${esc(f.note)}</span>`:''}</td>
-      <td><span class="catbadge">${esc(f.category)}</span></td>
+      <td><select class="fxcat">${catNames().map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}${catNames().includes(f.category)?'':`<option selected>${esc(f.category)}</option>`}</select></td>
       <td><span class="pill ${f.method==='amex'?'ai':'ok'}">${f.method==='amex'?'AMEX':'その他'}</span></td>
       <td class="r num">${yen(f.amount)}</td>
       <td class="r num muted">${yen(f.amount*12)}</td>
@@ -696,6 +704,8 @@ function renderFixed(){
       const i = state.fixed.indexOf(f);
       if(i < state.fixed.length-1){ [state.fixed[i+1], state.fixed[i]] = [state.fixed[i], state.fixed[i+1]]; persist(); renderFixed(); }
     };
+    const fc = tr.querySelector('.fxcat');
+    if(fc) fc.onchange = e=>{ f.category = e.target.value; persist(); renderFixed(); };
     tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
     tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
     tr.querySelector('.fxdel').onclick = ()=>{
