@@ -185,7 +185,8 @@ const DEFAULT_STATE = {
   history: SEED_HISTORY,
   categories: DEFAULT_CATEGORIES,
   budgetOverrides: { monthly: {}, yearly: {} },
-  todos: []
+  todos: [],
+  plans: []
 };
 
 /* ========== 状態管理 ========== */
@@ -304,6 +305,8 @@ function renderDash(){
   const cyc = dashCycle || defaultDashCycle();
   const isCurrent = cyc === currentCycle();
   const dlCycle = daysLeftInCycle(cyc);
+  if(!state.plans) state.plans = [];
+  const planRec = state.plans.filter(p=>!isSacred(p.category) && cycleOf(p.date)===cyc).reduce((s,p)=>s+p.amount,0);
   const autoNote = (!dashCycle && !isCurrent) ? 'データのある最新月を表示中' : '';
   const st = cycleStats(cyc);
   const budget = budgetFor(cyc);
@@ -314,6 +317,7 @@ function renderDash(){
   const year = cyc.slice(0,4);
   const ly = leisureYearTotal(year);
   const dlYear = daysLeftInYear(year);
+  const planSac = state.plans.filter(p=>isSacred(p.category) && cycleOf(p.date).startsWith(year)).reduce((s,p)=>s+p.amount,0);
   const lb = leisureBudgetFor(year);
   const lbOverridden = ovr().yearly[year] !== undefined;
   const lyPct = Math.min(100, lb>0 ? ly/lb*100 : 0);
@@ -322,13 +326,19 @@ function renderDash(){
   const envBars = envCats.map(c=>{
     const isYear = c.budget.period==='year';
     const spent = isYear ? catSpendYear(c.name, year) : catSpendCycle(c.name, cyc);
+    const plan = (state.plans||[]).filter(p=>p.category===c.name && (isYear ? cycleOf(p.date).startsWith(year) : cycleOf(p.date)===cyc)).reduce((s,p)=>s+p.amount,0);
     const amt = c.budget.amount;
     const pct = Math.min(100, amt>0 ? spent/amt*100 : 0);
+    const planPct = Math.min(100-pct, amt>0 ? plan/amt*100 : 0);
     const over = spent > amt;
     return `<div class="mb">
       <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'今月'}${(isYear?dlYear:dlCycle)!==null?'・残り'+(isYear?dlYear:dlCycle)+'日':''})</span></span>
       <span class="num ${over?'warntext':''}">${yen(spent)} / ${yen(amt)}</span></div>
-      <div class="bar"><div style="width:${pct}%; background:${over?'var(--warn)':(isSacred(c.name)?'var(--seiiki)':'var(--ok)')}"></div></div>
+      <div class="bar" style="display:flex">
+        <div style="width:${pct}%; background:${over?'var(--warn)':(isSacred(c.name)?'var(--seiiki)':'var(--ok)')}"></div>
+        ${plan>0?`<div style="width:${planPct}%; background:${isSacred(c.name)?'var(--seiiki)':'var(--ok)'}; opacity:.35"></div>`:''}
+      </div>
+      ${plan>0?`<div class="barnote"><span class="muted">予定 ${yen(plan)}</span><span class="num">実質残り ${yen(amt-spent-plan)}</span></div>`:''}
     </div>`;
   }).join('');
 
@@ -421,15 +431,23 @@ function renderDash(){
     <div class="card">
       <h2>${esc(labelRec())} <span class="hint">請求サイクル(前月22日〜21日)・聖域除く${budgetOverridden?'・個別予算':''}</span></h2>
       <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
-      <div class="bar"><div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div></div>
+      <div class="bar" style="display:flex">
+        <div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div>
+        ${planRec>0?`<div style="width:${Math.min(100-basePct, budget>0?planRec/budget*100:0)}%; background:var(--ai); opacity:.35" title="予定支出"></div>`:''}
+      </div>
       <div class="barnote"><span>${st.count}件の明細${dlCycle!==null?`・締め日(21日)まで<span class="num">${dlCycle}</span>日`:``}</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
+      ${planRec>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planRec)}</span></span><span class="num ${budget-st.base-planRec<0?'warntext':''}">実質残り ${yen(budget-st.base-planRec)}</span></div>`:''}
       ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
     </div>
     <div class="card">
       <h2>${esc(labelSac())} <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
       <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
-      <div class="bar"><div style="width:${lyPct}%; background:var(--seiiki)"></div></div>
+      <div class="bar" style="display:flex">
+        <div style="width:${lyPct}%; background:var(--seiiki)"></div>
+        ${planSac>0?`<div style="width:${Math.min(100-lyPct, lb>0?planSac/lb*100:0)}%; background:var(--seiiki); opacity:.35" title="予定支出"></div>`:''}
+      </div>
       <div class="barnote"><span>消化率 ${Math.round(lyPct)}%${dlYear!==null?`・年末まで<span class="num">${dlYear}</span>日`:``}</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
+      ${planSac>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planSac)}</span></span><span class="num ${lb-ly-planSac<0?'warntext':''}">実質残り ${yen(lb-ly-planSac)}</span></div>`:''}
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
     </div>
   </div>
@@ -531,6 +549,30 @@ function renderTx(){
     <p class="muted mt" id="importMsg"></p>
   </div>
   <div class="card">
+    <h2>予定支出(未来枠) <span class="hint">まだ確定していない将来の支出。ダッシュボードに薄い色で反映されます</span></h2>
+    <div class="row mb">
+      <input type="date" id="plDate">
+      <input type="text" id="plText" placeholder="例: 同期との飲み会" style="flex:1; min-width:140px">
+      <input type="number" id="plAmount" placeholder="金額(概算)" style="width:110px">
+      <select id="plCat">${catNames().map(c=>`<option ${c==='未分類'?'selected':''}>${c}</option>`).join('')}</select>
+      <button class="btn primary" id="plAdd">予定を追加</button>
+    </div>
+    ${(state.plans||[]).length?`<table>
+      <tr><th>予定日</th><th>内容</th><th class="r">金額(概算)</th><th>カテゴリ</th><th></th></tr>
+      ${state.plans.sort((a,b)=>a.date<b.date?-1:1).map(p=>{
+        const past = p.date < new Date().toISOString().slice(0,10);
+        return `<tr data-pid="${p.id}" style="${past?'':''}">
+          <td class="num" style="white-space:nowrap">${p.date.slice(5).replace('-','/')}${past?' <span class="pill warn">要確認</span>':' <span class="pill ai">予定</span>'}</td>
+          <td>${esc(p.text)}</td>
+          <td class="r num">${yen(p.amount)}</td>
+          <td><select class="plcat">${catNames().map(x=>`<option ${x===p.category?'selected':''}>${x}</option>`).join('')}</select></td>
+          <td><button class="btn small pldel">×</button></td>
+        </tr>`;
+      }).join('')}
+    </table>
+    <p class="muted mt">実際の支出がCSV/明細で入ったら、対応する予定を×で消してください。予定日を過ぎたものには「要確認」が付きます。</p>`:'<p class="muted">予定はありません。飲み会や旅行など、決まっているお金を先に登録しておくと「実質残り」が見えます。</p>'}
+  </div>
+  <div class="card">
     <h2>明細一覧
       <select id="txMonthSel" style="margin-left:10px">${(cycles.length?cycles:[txMonth]).map(c=>`<option ${c===txMonth?'selected':''}>${c}</option>`).join('')}</select>
       <span class="hint">合計 <span class="num">${yen(st.total)}</span>(経常 <span class="num">${yen(st.base)}</span> + レジャー <span class="num">${yen(st.leisure)}</span>)</span>
@@ -566,6 +608,21 @@ function renderTx(){
     state.transactions = state.transactions.filter(t=>cycleOf(t.date)!==txMonth);
     persist(); renderTx();
   };
+  el.querySelector('#plAdd').onclick = ()=>{
+    const d = el.querySelector('#plDate').value, t = el.querySelector('#plText').value.trim(), a = parseInt(el.querySelector('#plAmount').value);
+    if(!d||!t||!a){ alert('予定日・内容・金額を入力してください'); return; }
+    if(!state.plans) state.plans = [];
+    state.plans.push({id:uid(), date:d, text:t, amount:a, category:el.querySelector('#plCat').value});
+    persist(); renderTx();
+  };
+  el.querySelectorAll('tr[data-pid]').forEach(tr=>{
+    const p = state.plans.find(x=>x.id===tr.dataset.pid);
+    tr.querySelector('.plcat').onchange = e=>{ p.category = e.target.value; persist(); renderTx(); };
+    tr.querySelector('.pldel').onclick = ()=>{
+      state.plans = state.plans.filter(x=>x.id!==p.id);
+      persist(); renderTx();
+    };
+  });
   el.querySelectorAll('tr[data-id]').forEach(tr=>{
     const id = tr.dataset.id;
     const t = state.transactions.find(x=>x.id===id);
