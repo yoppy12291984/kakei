@@ -218,6 +218,12 @@ function currentCycle(){
   const iso = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   return cycleOf(iso);
 }
+function cleanMerchant(m){
+  m = String(m).normalize('NFKC').replace(/\s+/g,' ').trim();
+  m = m.replace(/ユ\?ネクスト/g,'ユーネクスト').replace(/U\?NEXT/g,'U-NEXT').replace(/サ\?ビス/g,'サービス');
+  m = m.replace(/\?/g,'ー');
+  return m || '不明';
+}
 function categorize(merchant){
   for(const key in state.merchantMap){
     if(merchant.toUpperCase().includes(key.toUpperCase())) return state.merchantMap[key];
@@ -576,29 +582,59 @@ function importCsvText(text){
   if(!text || !text.trim()){ document.getElementById('importMsg').textContent = 'テキストが空です。'; return; }
   const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
   let added=0, skipped=0;
+  let amexCols = null; // アメックス公式CSVの列位置
   const existing = new Set(state.transactions.map(t=>t.date+'|'+t.merchant+'|'+t.amount));
   for(const line of lines){
-    if(/ご利用日|日付.*金額/.test(line)) continue;
-    const cols = splitCsvLine(line);
-    if(cols.length < 3) { skipped++; continue; }
-    let dateStr = normDate(cols[0]);
-    if(!dateStr){ skipped++; continue; }
-    let amount = null, amountIdx = -1;
-    for(let i=cols.length-1;i>=1;i--){
-      const v = parseInt(cols[i].replace(/[¥,円\s"]/g,''));
-      if(!isNaN(v) && v!==0){ amount=v; amountIdx=i; break; }
+    // ヘッダー検出
+    if(/ご利用日/.test(line) && /ご利用内容/.test(line)){
+      const h = splitCsvLine(line);
+      amexCols = {
+        date: h.findIndex(c=>c.includes('ご利用日')),
+        merchant: h.findIndex(c=>c.includes('ご利用内容')),
+        amount: h.findIndex(c=>c.includes('金額') && !c.includes('海外'))
+      };
+      continue;
     }
-    if(amount===null || amount<0){ skipped++; continue; }
-    const merchant = cols.slice(1,amountIdx).join(' ').replace(/"/g,'').trim() || '不明';
-    const key = dateStr+'|'+merchant+'|'+amount;
-    if(existing.has(key)){ skipped++; continue; }
+    if(/日付.*金額/.test(line)) continue;
+    const cols = splitCsvLine(line);
+    let dateStr, merchant, amount;
+    if(amexCols && amexCols.date>=0 && amexCols.amount>=0){
+      // アメックス公式CSVモード: 列指定で確実に読む
+      dateStr = normDate(cols[amexCols.date]||'');
+      if(!dateStr){ skipped++; continue; }
+      amount = parseInt((cols[amexCols.amount]||'').replace(/[¥,円\s"]/g,''));
+      if(isNaN(amount) || amount<=0){ skipped++; continue; } // 支払・返金は除外
+      merchant = cleanMerchant(cols[amexCols.merchant]||'不明');
+    } else {
+      // 汎用モード(日付,店名,金額 の3列形式など)
+      if(cols.length < 3){ skipped++; continue; }
+      dateStr = normDate(cols[0]);
+      if(!dateStr){ skipped++; continue; }
+      amount = null; let amountIdx = -1;
+      for(let i=cols.length-1;i>=1;i--){
+        const v = parseInt(cols[i].replace(/[¥,円\s"]/g,''));
+        if(!isNaN(v) && v!==0){ amount=v; amountIdx=i; break; }
+      }
+      if(amount===null || amount<0){ skipped++; continue; }
+      merchant = cols.slice(1,amountIdx).join(' ').replace(/"/g,'').trim() || '不明';
+    }
+    // 同日・同店名・同金額はアメックスCSVでは別取引の可能性が高いため連番を付けて取り込む
+    let key = dateStr+'|'+merchant+'|'+amount;
+    if(existing.has(key)){
+      if(amexCols){
+        let n = 2;
+        while(existing.has(dateStr+'|'+merchant+' ('+n+'件目)|'+amount)) n++;
+        merchant = merchant+' ('+n+'件目)';
+        key = dateStr+'|'+merchant+'|'+amount;
+      } else { skipped++; continue; } // 汎用モードは従来通り重複スキップ(再取り込み対策)
+    }
     existing.add(key);
     state.transactions.push({id:uid(), date:dateStr, merchant, amount, category:categorize(merchant)});
     added++;
   }
   persist();
-  document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件: 重複・支払行・解析不能)。`;
-  if(added>0){ txMonth=''; renderTx(); document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件)。`; }
+  if(added>0){ txMonth=''; renderTx(); }
+  document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件: 支払・返金・重複・解析不能)。`;
 }
 function splitCsvLine(line){
   const out=[]; let cur='', inQ=false;
