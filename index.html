@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.1.9 — 手動明細の区別</span>
+  <span class="ver">Ver.1.9.1 — 旧明細の手動昇格</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -643,6 +643,9 @@ function renderTx(){
       if(/^\d{4}-\d{2}-\d{2}$/.test(d.trim())) t.date = d.trim();
       t.merchant = m.trim() || t.merchant;
       const av = parseInt(a); if(av && av>0) t.amount = av;
+      if(!t.src){
+        t.src = confirm('この明細は手動で入力したものですか?\n\nOK = 手動明細(緑表示・一括削除から保護可能)\nキャンセル = CSV取り込み分') ? 'manual' : 'csv';
+      }
       txMonth = cycleOf(t.date);
       persist(); renderTx();
     };
