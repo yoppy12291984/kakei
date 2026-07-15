@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.1.8 — 明細編集対応</span>
+  <span class="ver">Ver.1.9 — 手動明細の区別</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -528,9 +528,9 @@ function renderTx(){
 
   const catOpts = c => catNames().map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
   const rows = tx.map(t=>`
-    <tr data-id="${t.id}">
+    <tr data-id="${t.id}" style="${t.src==='manual'?'background:var(--ok-bg);':''}">
       <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
-      <td>${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td>${t.src==='manual'?'<span class="pill ok">手動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
       <td class="r num">${yen(t.amount)}</td>
       <td><select class="txcat">${catOpts(t.category)}</select></td>
       <td style="white-space:nowrap"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
@@ -597,14 +597,23 @@ function renderTx(){
   el.querySelector('#manAdd').onclick = ()=>{
     const d = el.querySelector('#manDate').value, m = el.querySelector('#manMerchant').value.trim(), a = parseInt(el.querySelector('#manAmount').value);
     if(!d||!m||!a){ alert('日付・店名・金額を入力してください'); return; }
-    state.transactions.push({id:uid(), date:d, merchant:m, amount:a, category:categorize(m)});
+    state.transactions.push({id:uid(), date:d, merchant:m, amount:a, category:categorize(m), src:'manual'});
     txMonth = cycleOf(d); persist(); renderTx();
   };
   el.querySelector('#monthDel').onclick = ()=>{
-    const cnt = state.transactions.filter(t=>cycleOf(t.date)===txMonth).length;
-    if(!cnt){ alert('この月に明細はありません'); return; }
-    if(!confirm(`${txMonth}請求の明細${cnt}件をすべて削除します。\n速報データを確定データ(PDF版)に置き換える前の整理などに使ってください。\n\n本当に削除しますか?`)) return;
-    state.transactions = state.transactions.filter(t=>cycleOf(t.date)!==txMonth);
+    const inMonth = state.transactions.filter(t=>cycleOf(t.date)===txMonth);
+    if(!inMonth.length){ alert('この月に明細はありません'); return; }
+    const manualCnt = inMonth.filter(t=>t.src==='manual').length;
+    if(!confirm(`${txMonth}請求の明細${inMonth.length}件を削除します。\n速報データを確定データ(PDF版)に置き換える前の整理などに使ってください。\n\n続けますか?`)) return;
+    let keepManual = false;
+    if(manualCnt > 0){
+      keepManual = !confirm(`この月には手動明細が${manualCnt}件あります。\n\nOK = 手動明細も含めてすべて削除\nキャンセル = 手動明細は残して、取り込み分だけ削除`);
+    }
+    state.transactions = state.transactions.filter(t=>{
+      if(cycleOf(t.date)!==txMonth) return true;
+      if(keepManual && t.src==='manual') return true;
+      return false;
+    });
     persist(); renderTx();
   };
   el.querySelector('#plAdd').onclick = ()=>{
@@ -695,7 +704,7 @@ function importCsvText(text){
       } else { skipped++; continue; } // 汎用モードは従来通り重複スキップ(再取り込み対策)
     }
     existing.add(key);
-    state.transactions.push({id:uid(), date:dateStr, merchant, amount, category:categorize(merchant)});
+    state.transactions.push({id:uid(), date:dateStr, merchant, amount, category:categorize(merchant), src:'csv'});
     added++;
   }
   persist();
