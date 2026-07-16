@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.2.1 — レイアウト調整</span>
+  <span class="ver">Ver.2.2 — 除外カテゴリの年間実績</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -348,6 +348,12 @@ function renderDash(){
     </div>`;
   }).join('');
 
+  // 経常除外カテゴリの年間実績
+  const exclCatList = state.categories.filter(c=>c.excluded && !c.sacred).map(c=>{
+    const tx = state.transactions.filter(t=>t.category===c.name && cycleOf(t.date).startsWith(year));
+    return { name: c.name, total: tx.reduce((s,t)=>s+t.amount,0), count: tx.length };
+  });
+
   // 経常支出の年間集計
   let annualBudget = 0;
   for(let m=1; m<=12; m++) annualBudget += budgetFor(year + '-' + String(m).padStart(2,'0'));
@@ -395,12 +401,13 @@ function renderDash(){
 
   let detailCard = '';
   if(dashDetail){
+    const isYearDetail = dashDetail.cycle.length === 4;
     const dtx = state.transactions
-      .filter(t=>t.category===dashDetail.cat && cycleOf(t.date)===dashDetail.cycle)
+      .filter(t=>t.category===dashDetail.cat && (isYearDetail ? cycleOf(t.date).startsWith(dashDetail.cycle) : cycleOf(t.date)===dashDetail.cycle))
       .sort((a,b)=>a.date<b.date?-1:1);
     const dsum = dtx.reduce((s,t)=>s+t.amount,0);
     detailCard = `<div class="card" id="detailCard" style="border-color:var(--ai)">
-      <h2>${esc(dashDetail.cat)} の明細 <span class="hint">${dashDetail.cycle.replace('-','年')}月請求・${dtx.length}件・合計 ${yen(dsum)}</span>
+      <h2>${esc(dashDetail.cat)} の明細 <span class="hint">${isYearDetail ? dashDetail.cycle+'年(年間)' : dashDetail.cycle.replace('-','年')+'月請求'}・${dtx.length}件・合計 ${yen(dsum)}</span>
         <button class="btn small" id="detailClose" style="float:right">閉じる</button></h2>
       ${dtx.length?`<table>
         <tr><th>日付</th><th>店名</th><th class="r">金額</th></tr>
@@ -469,6 +476,17 @@ function renderDash(){
       ${planSac>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planSac)}</span></span><span class="num ${lb-ly-planSac<0?'warntext':''}">実質残り ${yen(lb-ly-planSac)}</span></div>`:''}
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
     </div>
+  ${exclCatList.length?`<div class="card">
+    <h2>経常除外カテゴリ(年間実績) <span class="hint">${year}年・経常にも聖域にも入らない独立の財布。タップで明細</span></h2>
+    <div style="overflow-x:auto"><table>
+      <tr><th>カテゴリ</th><th class="r">件数</th><th class="r">年間実績</th></tr>
+      ${exclCatList.map(c=>`<tr class="drill" data-cat="${esc(c.name)}" data-cyc="${year}" style="cursor:pointer">
+        <td>${esc(c.name)}</td>
+        <td class="r num muted">${c.count}件</td>
+        <td class="r num">${yen(c.total)}</td>
+      </tr>`).join('')}
+    </table></div>
+  </div>`:''}
   ${envCats.length?`<div class="card">
     <h2>${esc(labelEnv())} <span class="hint">カテゴリ別の予算枠(予算設定で作成・編集)</span></h2>
     ${envBars}
