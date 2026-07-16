@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.2.2 — 除外カテゴリの年間実績</span>
+  <span class="ver">Ver.2.3 — 月の総収支</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -521,13 +521,17 @@ function renderDash(){
   </div>`:''}
   <div class="grid2">
     <div class="card">
-      <h2>収支メモ(表示中の月)</h2>
+      <h2>月の総収支(表示中の月) <span class="hint">アメックス外の固定費も含めた全体像</span></h2>
       <table>
-        <tr><td>収入(登録分)</td><td class="r num">${yen(monthIncome)}</td></tr>
+        <tr><td>収入(登録分)</td><td class="r num">${monthIncome>0?yen(monthIncome):'<span class="muted">未登録</span>'}</td></tr>
+        <tr><td>アメックス実績</td><td class="r num">${yen(st.total)}</td></tr>
         <tr><td>アメックス外の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
-        <tr><td>アメックス内の固定費(参考)</td><td class="r num">${yen(fixedAmex)}</td></tr>
-        <tr><td>アメックス実績(表示中の月)</td><td class="r num">${yen(st.total)}</td></tr>
+        ${state.fixed.filter(f=>f.active && f.method==='other' && f.amount>0).map(f=>`
+        <tr><td class="muted" style="padding-left:20px; font-size:12.5px">└ ${esc(f.label)}</td><td class="r num muted" style="font-size:12.5px">${yen(f.amount)}</td></tr>`).join('')}
+        <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
+        ${monthIncome>0?`<tr><td><strong>収支差額(投資余力)</strong></td><td class="r num ${monthIncome-st.total-fixedOther>=0?'oktext':'warntext'}"><strong>${yen(monthIncome-st.total-fixedOther)}</strong></td></tr>`:''}
       </table>
+      ${monthIncome===0?'<p class="muted mt">収入タブに給与等を登録すると、収支差額(投資に回せる額)が表示されます。</p>':''}
     </div>
     <div class="card">
       <h2>解約候補による削減見込み</h2>
