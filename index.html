@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.1.9.1 — 旧明細の手動昇格</span>
+  <span class="ver">Ver.2.0 — 経常除外と年間ビュー</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -113,6 +113,7 @@ const LEISURE_CAT = '家族レジャー';
 const DEFAULT_CATEGORIES = CATS.map(n => ({name:n, sacred: n===LEISURE_CAT}));
 function catNames(){ return state.categories.map(c=>c.name); }
 function isSacred(name){ const c = state.categories.find(x=>x.name===name); return !!(c && c.sacred); }
+function isExcluded(name){ const c = state.categories.find(x=>x.name===name); return !!(c && (c.sacred || c.excluded)); }
 function ovr(){ if(!state.budgetOverrides) state.budgetOverrides = {monthly:{}, yearly:{}}; if(!state.budgetOverrides.monthly) state.budgetOverrides.monthly={}; if(!state.budgetOverrides.yearly) state.budgetOverrides.yearly={}; return state.budgetOverrides; }
 function budgetFor(cycle){ const o = ovr().monthly[cycle]; return (o !== undefined && o !== null) ? o : state.settings.budgetRecurring; }
 function leisureBudgetFor(year){ const o = ovr().yearly[year]; return (o !== undefined && o !== null) ? o : state.settings.leisureAnnual; }
@@ -236,9 +237,13 @@ function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'
 /* ========== 集計 ========== */
 function cycleStats(cycle){
   const tx = state.transactions.filter(t => cycleOf(t.date) === cycle);
-  let total=0, leisure=0;
-  tx.forEach(t=>{ total+=t.amount; if(isSacred(t.category)) leisure+=t.amount; });
-  return {total, leisure, base: total-leisure, count: tx.length};
+  let total=0, leisure=0, excl=0;
+  tx.forEach(t=>{
+    total+=t.amount;
+    if(isSacred(t.category)) leisure+=t.amount;
+    else if(isExcluded(t.category)) excl+=t.amount;
+  });
+  return {total, leisure, excl, base: total-leisure-excl, count: tx.length};
 }
 function mergedHistory(){
   const map = {};
@@ -306,7 +311,7 @@ function renderDash(){
   const isCurrent = cyc === currentCycle();
   const dlCycle = daysLeftInCycle(cyc);
   if(!state.plans) state.plans = [];
-  const planRec = state.plans.filter(p=>!isSacred(p.category) && cycleOf(p.date)===cyc).reduce((s,p)=>s+p.amount,0);
+  const planRec = state.plans.filter(p=>!isExcluded(p.category) && cycleOf(p.date)===cyc).reduce((s,p)=>s+p.amount,0);
   const autoNote = (!dashCycle && !isCurrent) ? 'データのある最新月を表示中' : '';
   const st = cycleStats(cyc);
   const budget = budgetFor(cyc);
@@ -341,6 +346,12 @@ function renderDash(){
       ${plan>0?`<div class="barnote"><span class="muted">予定 ${yen(plan)}</span><span class="num">実質残り ${yen(amt-spent-plan)}</span></div>`:''}
     </div>`;
   }).join('');
+
+  // 経常支出の年間集計
+  let annualBudget = 0;
+  for(let m=1; m<=12; m++) annualBudget += budgetFor(year + '-' + String(m).padStart(2,'0'));
+  const exclYear = state.transactions.filter(t=>cycleOf(t.date).startsWith(year) && isExcluded(t.category) && !isSacred(t.category)).reduce((s,t)=>s+t.amount,0);
+  const annualBase = mergedHistory().filter(h=>h.cycle.startsWith(year)).reduce((s,h)=>s+(h.total-h.leisure),0) - exclYear;
 
   const catTotals = {};
   state.transactions.filter(t=>cycleOf(t.date)===cyc).forEach(t=>{ catTotals[t.category]=(catTotals[t.category]||0)+t.amount; });
@@ -450,6 +461,12 @@ function renderDash(){
       ${planSac>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planSac)}</span></span><span class="num ${lb-ly-planSac<0?'warntext':''}">実質残り ${yen(lb-ly-planSac)}</span></div>`:''}
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
     </div>
+  </div>
+  <div class="card">
+    <h2>${esc(labelRec())}(年間) <span class="hint">${year}年・月予算×12(個別予算を反映)</span></h2>
+    <div class="bignum num ${annualBase>annualBudget?'warntext':''}">${yen(annualBase)} <small>/ ${yen(annualBudget)}</small></div>
+    <div class="bar"><div style="width:${Math.min(100, annualBudget>0?annualBase/annualBudget*100:0)}%; background:${annualBase>annualBudget?'var(--warn)':'var(--ai)'}"></div></div>
+    <div class="barnote"><span>消化率 ${annualBudget>0?Math.round(annualBase/annualBudget*100):0}%${dlYear!==null?`・年末まで<span class="num">${dlYear}</span>日`:``}</span><span class="num">残り ${yen(Math.max(0,annualBudget-annualBase))}</span></div>
   </div>
   ${envCats.length?`<div class="card">
     <h2>マイ枠 <span class="hint">カテゴリ別の予算枠(設定タブのカテゴリ管理で作成・編集)</span></h2>
@@ -1029,11 +1046,12 @@ function renderSettings(){
   <div class="card">
     <h2>カテゴリ管理 <span class="hint">「聖域」にチェックしたカテゴリは年間枠にカウントされ、経常支出から除外されます</span></h2>
     <div style="overflow-x:auto"><table>
-      <tr><th>カテゴリ名</th><th style="text-align:center">聖域</th><th>枠(予算)</th><th></th></tr>
+      <tr><th>カテゴリ名</th><th style="text-align:center">聖域</th><th style="text-align:center">経常除外</th><th>枠(予算)</th><th></th></tr>
       ${state.categories.map((c,i)=>`
       <tr data-ci="${i}">
         <td>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''}</td>
         <td style="text-align:center"><input type="checkbox" class="catSacred" ${c.sacred?'checked':''} ${c.name==='未分類'?'disabled':''}></td>
+        <td style="text-align:center"><input type="checkbox" class="catExcl" ${(c.sacred||c.excluded)?'checked':''} ${(c.sacred||c.name==='未分類')?'disabled':''} title="${c.sacred?'聖域は自動的に経常除外です':'経常支出の計算から外す'}"></td>
         <td class="num" style="white-space:nowrap">${c.budget&&c.budget.amount>0?(c.budget.period==='year'?'年 ':'月 ')+yen(c.budget.amount):'<span class="muted">—</span>'} <button class="btn small catBudget">枠</button></td>
         <td style="white-space:nowrap">
           <button class="btn small catUp" ${i===0?'disabled':''}>↑</button>
@@ -1145,6 +1163,8 @@ function renderSettings(){
     };
     const sc = tr.querySelector('.catSacred');
     if(sc) sc.onchange = e=>{ c.sacred = e.target.checked; persist(); renderSettings(); };
+    const ex = tr.querySelector('.catExcl');
+    if(ex) ex.onchange = e=>{ c.excluded = e.target.checked; persist(); renderSettings(); };
     const bd = tr.querySelector('.catBudget');
     if(bd) bd.onclick = ()=>{
       const cur = c.budget && c.budget.amount ? c.budget.amount : '';
