@@ -85,7 +85,7 @@ footer{text-align:center; font-size:11px; color:var(--faint); padding:20px;}
 <body>
 <header>
   <h1>家計OS</h1>
-  <span class="ver">Ver.2.3 — 月の総収支</span>
+  <span class="ver">Ver.2.4 — 収入の年間合計</span>
   <span id="syncStatus"></span>
 </header>
 <nav id="nav">
@@ -892,6 +892,13 @@ function renderIncome(){
     const tot = state.incomes.filter(i=>i.month===m).reduce((s,i)=>s+i.amount,0);
     return `<tr><td class="num">${m}</td><td class="r num">${yen(tot)}</td></tr>`;
   }).join('');
+  const years = [...new Set(state.incomes.map(i=>i.month.slice(0,4)))].sort().reverse();
+  const yearTotals = years.map(y=>{
+    const inYear = state.incomes.filter(i=>i.month.startsWith(y));
+    const tot = inYear.reduce((s,i)=>s+i.amount,0);
+    const monthCnt = new Set(inYear.map(i=>i.month)).size;
+    return `<tr><td class="num">${y}年</td><td class="r num">${yen(tot)}</td><td class="r num muted">${yen(Math.round(tot/Math.max(1,monthCnt)))}</td></tr>`;
+  }).join('');
   el.innerHTML = `
   <div class="card">
     <h2>収入の記録</h2>
@@ -903,7 +910,8 @@ function renderIncome(){
     </div>
     ${state.incomes.length?`<table><tr><th>月</th><th>内容</th><th class="r">金額</th><th></th></tr>${rows}</table>`:'<p class="muted">まだ収入の記録がありません。給与や副収入を月ごとに登録すると、ダッシュボードの収支メモに反映されます。</p>'}
   </div>
-  ${months.length?`<div class="card"><h2>月別合計</h2><table><tr><th>月</th><th class="r">収入合計</th></tr>${monthTotals}</table></div>`:''}`;
+  ${months.length?`<div class="card"><h2>月別合計</h2><table><tr><th>月</th><th class="r">収入合計</th></tr>${monthTotals}</table></div>`:''}
+  ${years.length?`<div class="card"><h2>年間合計</h2><table><tr><th>年</th><th class="r">収入合計</th><th class="r">月平均</th></tr>${yearTotals}</table></div>`:''}`;
   el.querySelector('#incAdd').onclick = ()=>{
     const m = el.querySelector('#incMonth').value, l = el.querySelector('#incLabel').value.trim(), a = parseInt(el.querySelector('#incAmount').value);
     if(!m||!l||!a){ alert('月・内容・金額を入力してください'); return; }
