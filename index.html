@@ -116,12 +116,52 @@ button.btn:disabled{opacity:.35; cursor:default;}
 footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; letter-spacing:.08em;}
 .warntext{color:var(--warn);}
 .oktext{color:var(--ok);}
+
+/* ---------- 明細テーブル：スマホ表示崩れ対策 ---------- */
+.tx-scroll{
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.tx-table{
+  min-width:760px;
+  table-layout:auto;
+}
+.tx-table th,
+.tx-table td{
+  white-space:nowrap;
+}
+.tx-table .tx-merchant{
+  width:260px;
+  max-width:260px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.tx-table .tx-amount{
+  width:110px;
+}
+.tx-table .tx-category{
+  width:170px;
+}
+.tx-table .tx-actions{
+  width:170px;
+}
+@media(max-width:700px){
+  .tx-table{
+    min-width:700px;
+    font-size:13px;
+  }
+  .tx-table .tx-merchant{
+    width:220px;
+    max-width:220px;
+  }
+}
+
 </style>
 </head>
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.5 — 年別カテゴリ推移・定期明細の過去生成</span>
+  <span class="ver">Ver.3.6 — 明細モバイル表示・定期明細削除修正</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -226,7 +266,8 @@ const DEFAULT_STATE = {
   categories: DEFAULT_CATEGORIES,
   budgetOverrides: { monthly: {}, yearly: {} },
   todos: [],
-  plans: []
+  plans: [],
+  recurringSkips: []
 };
 
 /* ========== 状態管理 ========== */
@@ -287,6 +328,16 @@ function recurringDate(ym, day){
   const last = new Date(y, m, 0).getDate();
   return ym + '-' + String(Math.min(Math.max(1,day||1), last)).padStart(2,'0');
 }
+
+function recurringSkips(){
+  if(!state.recurringSkips) state.recurringSkips = [];
+  return state.recurringSkips;
+}
+function skipRecurringKey(key){
+  if(!key) return;
+  const skips = recurringSkips();
+  if(!skips.includes(key)) skips.push(key);
+}
 function ensureRecurringTransactions(){
   const today = new Date();
   const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
@@ -302,11 +353,12 @@ function ensureRecurringTransactions(){
       if(date <= todayStr){
         const rkey = f.id + '|' + ym;
         const existsRecurring = state.transactions.some(t=>t.recurringKey===rkey);
+        const isSkipped = recurringSkips().includes(rkey);
         // 過去に同じ固定費を手動入力している場合は重複を避ける
         const existsSameManual = state.transactions.some(t=>
           cycleOf(t.date)===ym && t.merchant===f.label && t.amount===f.amount && t.src==='manual'
         );
-        if(!existsRecurring && !existsSameManual){
+        if(!existsRecurring && !isSkipped && !existsSameManual){
           state.transactions.push({
             id:uid(), date, merchant:f.label, amount:f.amount, category:f.category,
             src:'recurring', recurringKey:rkey, recurringFixedId:f.id, recurringMonth:ym
@@ -689,10 +741,10 @@ function renderTx(){
   const rows = tx.map(t=>`
     <tr data-id="${t.id}" style="${t.src==='manual'||t.src==='recurring'?'background:var(--ok-bg);':''}">
       <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
-      <td>${t.src==='manual'?'<span class="pill ok">手動</span> ':t.src==='recurring'?'<span class="pill ok">自動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
-      <td class="r num">${yen(t.amount)}</td>
-      <td><select class="txcat">${catOpts(t.category)}</select></td>
-      <td style="white-space:nowrap"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
+      <td class="tx-merchant" title="${esc(t.merchant)}">${t.src==='manual'?'<span class="pill ok">手動</span> ':t.src==='recurring'?'<span class="pill ok">自動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td class="r num tx-amount">${yen(t.amount)}</td>
+      <td class="tx-category"><select class="txcat">${catOpts(t.category)}</select></td>
+      <td class="tx-actions"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
     </tr>`).join('');
 
   el.innerHTML = `
@@ -740,7 +792,7 @@ function renderTx(){
       <button class="btn" id="manAdd">手動追加</button>
       <button class="btn danger" id="monthDel">この月を一括削除</button>
     </div>
-    ${tx.length?`<div style="overflow-x:auto"><table>
+    ${tx.length?`<div class="tx-scroll"><table class="tx-table">
       <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th></tr>${rows}
     </table></div>`:'<p class="muted">この月の明細はまだありません。</p>'}
   </div>`;
@@ -768,11 +820,13 @@ function renderTx(){
     if(manualCnt > 0){
       keepManual = !confirm(`この月には手動明細が${manualCnt}件あります。\n\nOK = 手動明細も含めてすべて削除\nキャンセル = 手動明細は残して、取り込み分だけ削除`);
     }
-    state.transactions = state.transactions.filter(t=>{
-      if(cycleOf(t.date)!==txMonth) return true;
-      if(keepManual && t.src==='manual') return true;
-      return false;
+    const deleting = state.transactions.filter(t=>{
+      if(cycleOf(t.date)!==txMonth) return false;
+      if(keepManual && t.src==='manual') return false;
+      return true;
     });
+    deleting.forEach(t=>{ if(t.src==='recurring' && t.recurringKey) skipRecurringKey(t.recurringKey); });
+    state.transactions = state.transactions.filter(t=>!deleting.includes(t));
     persist(); renderTx();
   };
   el.querySelector('#plAdd').onclick = ()=>{
@@ -804,7 +858,11 @@ function renderTx(){
       }
       persist(); renderTx();
     };
-    tr.querySelector('.txdel').onclick = ()=>{ state.transactions = state.transactions.filter(x=>x.id!==id); persist(); renderTx(); };
+    tr.querySelector('.txdel').onclick = ()=>{
+      if(t.src==='recurring' && t.recurringKey) skipRecurringKey(t.recurringKey);
+      state.transactions = state.transactions.filter(x=>x.id!==id);
+      persist(); renderTx();
+    };
     tr.querySelector('.txedit').onclick = ()=>{
       const d = prompt('日付(YYYY-MM-DD)', t.date); if(d===null) return;
       const m = prompt('店名・内容', t.merchant); if(m===null) return;
