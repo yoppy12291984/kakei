@@ -100,6 +100,7 @@ button.btn:disabled{opacity:.35; cursor:default;}
 .chart .seg{width:64%; max-width:52px;}
 .chart .seg.leisure{background:var(--seiiki); border-radius:4px 4px 0 0;}
 .chart .seg.base{background:var(--ai);}
+.chart .seg.excl{background:var(--ok);}
 .chart .col .cap{font-size:11px; color:var(--sub); margin-top:7px;}
 .chart .col .val{font-size:11px; color:var(--sub); position:absolute; top:-20px;}
 .chart .col.first .seg.base{border-radius:4px 4px 0 0;}
@@ -107,6 +108,7 @@ button.btn:disabled{opacity:.35; cursor:default;}
 .legend span::before{content:''; display:inline-block; width:9px; height:9px; border-radius:2.5px; margin-right:6px; vertical-align:-1px;}
 .legend .l1::before{background:var(--ai);}
 .legend .l2::before{background:var(--seiiki);}
+.legend .l3::before{background:var(--ok);}
 
 .goalline{border-top:1px dashed var(--faint); position:relative;}
 .hidden{display:none;}
@@ -119,7 +121,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.2 — 期間指定エクスポート</span>
+  <span class="ver">Ver.3.3 — 月次推移の経常表示</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -464,14 +466,22 @@ function renderDash(){
   const cancelSave = state.fixed.filter(f=>f.active && f.cancel).reduce((s,f)=>s+f.amount,0);
 
   let chartCols = hist.map(h=>{
-    const bh = Math.round((h.total-h.leisure)/maxTotal*140);
+    const cst = cycleStats(h.cycle);
+    const computed = cst.count > 0;
+    const baseAmt = computed ? cst.base : (h.total - h.leisure);
+    const exclAmt = computed ? cst.excl : 0;
+    const bh = Math.round(baseAmt/maxTotal*140);
+    const eh = Math.round(exclAmt/maxTotal*140);
     const lh = Math.round(h.leisure/maxTotal*140);
     const label = parseInt(h.cycle.slice(5,7)) + '月';
+    const topRadius = 'border-radius:4px 4px 0 0;';
     return `<div class="col">
       <span class="val num">${Math.round(h.total/10000)}万</span>
       ${lh>0?`<div class="seg leisure" style="height:${lh}px"></div>`:''}
-      <div class="seg base" style="height:${Math.max(bh,2)}px; ${lh===0?'border-radius:4px 4px 0 0;':''}"></div>
+      ${eh>0?`<div class="seg excl" style="height:${eh}px; ${lh===0?topRadius:''}"></div>`:''}
+      <div class="seg base" style="height:${Math.max(bh,2)}px; ${(lh===0&&eh===0)?topRadius:''}"></div>
       <span class="cap">${label}${h.seed?'':'●'}</span>
+      <span class="cap num" style="color:var(--ai); margin-top:0;">${Math.round(baseAmt/10000)}万</span>
     </div>`;
   }).join('');
 
@@ -533,7 +543,7 @@ function renderDash(){
   <div class="card">
     <h2>月次推移 <span class="hint">アメックス請求額の内訳(●=明細から集計、無印=初期データ)</span></h2>
     <div class="chart">${chartCols}</div>
-    <div class="legend"><span class="l1">経常支出</span><span class="l2">聖域カテゴリ分</span></div>
+    <div class="legend"><span class="l1">経常支出(下の青数字)</span><span class="l3">経常除外</span><span class="l2">聖域</span></div>
   </div>
   ${catEntries.length?`<div class="card">
     <h2>カテゴリ別内訳 <span class="hint">${cyc.replace('-','年')}月請求・前月比は${hasPrev?prevCyc.replace('-','年')+'月請求との差':'前月データなし'}</span></h2>
