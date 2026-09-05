@@ -119,7 +119,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.1 — Claude用エクスポート</span>
+  <span class="ver">Ver.3.2 — 期間指定エクスポート</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -1151,6 +1151,12 @@ function renderSettings(){
   <div class="card">
     <h2>データ管理</h2>
     <div class="row mb">
+      <select id="repRange">
+        <option value="all">全期間</option>
+        <option value="1" selected>今月(最新サイクル)のみ</option>
+        <option value="3">直近3か月</option>
+        <option value="6">直近6か月</option>
+      </select>
       <button class="btn primary" id="repBtn">Claude用レポート出力</button>
       <button class="btn" id="repCopyBtn">レポートをコピー</button>
       <button class="btn" id="csvExpBtn">明細CSV出力</button>
@@ -1291,19 +1297,22 @@ function renderSettings(){
   el.querySelector('#gasSave').onclick = gasSave;
   el.querySelector('#gasLoad').onclick = gasLoad;
   el.querySelector('#repBtn').onclick = ()=>{
-    download('ledgers-report-' + new Date().toISOString().slice(0,10) + '.md', buildReport(), 'text/markdown');
+    const r = el.querySelector('#repRange').value;
+    download('ledgers-report-' + new Date().toISOString().slice(0,10) + '.md', buildReport(r), 'text/markdown');
   };
   el.querySelector('#repCopyBtn').onclick = async ()=>{
+    const r = el.querySelector('#repRange').value;
     try{
-      await navigator.clipboard.writeText(buildReport());
+      await navigator.clipboard.writeText(buildReport(r));
       alert('レポートをコピーしました。1億円計画プロジェクトのチャットに貼り付けてください。');
     }catch(err){
-      download('ledgers-report.md', buildReport(), 'text/markdown');
+      download('ledgers-report.md', buildReport(r), 'text/markdown');
       alert('コピーできない環境のため、ファイルとしてダウンロードしました。');
     }
   };
   el.querySelector('#csvExpBtn').onclick = ()=>{
-    download('ledgers-transactions-' + new Date().toISOString().slice(0,10) + '.csv', buildTxCsv(), 'text/csv');
+    const r = el.querySelector('#repRange').value;
+    download('ledgers-transactions-' + new Date().toISOString().slice(0,10) + '.csv', buildTxCsv(r), 'text/csv');
   };
   el.querySelector('#expBtn').onclick = ()=>{
     const blob = new Blob([JSON.stringify(state,null,1)], {type:'application/json'});
@@ -1333,18 +1342,30 @@ function download(filename, content, mime){
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = filename; a.click();
 }
-function buildTxCsv(){
-  const rows = [...state.transactions].sort((a,b)=>a.date<b.date?-1:1).map(t=>[
+function reportCycles(range){
+  const all = mergedHistory().map(h=>h.cycle);
+  if(range === 'all' || !all.length) return all;
+  return all.slice(-parseInt(range));
+}
+function buildTxCsv(range){
+  const cycles = reportCycles(range || 'all');
+  const rows = [...state.transactions]
+    .filter(t=>!cycles.length || cycles.includes(cycleOf(t.date)))
+    .sort((a,b)=>a.date<b.date?-1:1).map(t=>[
     t.date, t.merchant.replace(/,/g,' '), t.amount, t.category,
     isSacred(t.category)?'聖域':'', (!isSacred(t.category)&&isExcluded(t.category))?'経常除外':'',
     t.src==='manual'?'手動':''
   ].join(','));
   return '日付,店名,金額,カテゴリ,聖域,経常除外,入力\n' + rows.join('\n');
 }
-function buildReport(){
+function buildReport(range){
   const today = new Date().toISOString().slice(0,10);
+  const cycles = reportCycles(range || 'all');
+  const period = cycles.length ? cycles[0] + '請求 〜 ' + cycles[cycles.length-1] + '請求' : 'データなし';
   const L = [];
   L.push('# Ledgers OS 家計レポート(' + today + '生成)');
+  L.push('');
+  L.push('**対象期間: ' + period + '(各サイクル=前月22日〜当月21日の利用分)**');
   L.push('');
   L.push('## 予算設定');
   L.push('- 経常支出の月間予算: ' + yen(state.settings.budgetRecurring) + '(年換算 ' + yen(state.settings.budgetRecurring*12) + ')');
@@ -1356,7 +1377,7 @@ function buildReport(){
   L.push('| 月 | 合計 | 経常 | 聖域 | 経常除外 | 経常予算比 | 収入 | 収支差額 |');
   L.push('|---|---|---|---|---|---|---|---|');
   const fixedOther = state.fixed.filter(f=>f.active && f.method==='other').reduce((s,f)=>s+f.amount,0);
-  mergedHistory().forEach(h=>{
+  mergedHistory().filter(h=>cycles.includes(h.cycle)).forEach(h=>{
     const st = cycleStats(h.cycle);
     const isComputed = st.count > 0;
     const base = isComputed ? st.base : h.total - h.leisure;
@@ -1370,10 +1391,9 @@ function buildReport(){
   });
   L.push('※収支差額 = 収入 − アメックス合計 − アメックス外固定費(' + yen(fixedOther) + '/月)');
   L.push('');
-  L.push('## カテゴリ別 年間実績(今年・アメックス明細ベース)');
-  const year = String(new Date().getFullYear());
+  L.push('## カテゴリ別実績(対象期間内・アメックス明細ベース)');
   const catTot = {};
-  state.transactions.forEach(t=>{ if(cycleOf(t.date).startsWith(year)) catTot[t.category]=(catTot[t.category]||0)+t.amount; });
+  state.transactions.forEach(t=>{ if(cycles.includes(cycleOf(t.date))) catTot[t.category]=(catTot[t.category]||0)+t.amount; });
   Object.entries(catTot).sort((a,b)=>b[1]-a[1]).forEach(([c,v])=>{
     const tag = isSacred(c)?'【聖域】':(isExcluded(c)?'【経常除外】':'');
     L.push('- ' + c + tag + ': ' + yen(v));
@@ -1387,7 +1407,7 @@ function buildReport(){
   L.push('');
   if(state.incomes.length){
     L.push('## 収入の記録');
-    const months = [...new Set(state.incomes.map(i=>i.month))].sort();
+    const months = [...new Set(state.incomes.map(i=>i.month))].filter(m=>cycles.includes(m)).sort();
     months.forEach(m=>{
       const items = state.incomes.filter(i=>i.month===m);
       L.push('- ' + m + ': ' + items.map(i=>i.label+' '+yen(i.amount)).join(' / '));
