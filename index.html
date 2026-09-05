@@ -121,7 +121,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.3 — 月次推移の経常表示</span>
+  <span class="ver">Ver.3.4 — 年初来カテゴリ推移・定期明細</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -273,6 +273,52 @@ function categorize(merchant){
 }
 function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* ========== 定期明細(AMEX外の家賃など) ========== */
+function monthKey(d=new Date()){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function addMonthsKey(ym, delta){
+  const [y,m] = ym.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function recurringDate(ym, day){
+  const [y,m] = ym.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return ym + '-' + String(Math.min(Math.max(1,day||1), last)).padStart(2,'0');
+}
+function ensureRecurringTransactions(){
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const thisMonth = monthKey(today);
+  let changed = false;
+  state.fixed.forEach(f=>{
+    if(!f.active || f.method!=='other' || !f.autoPost || !f.amount || f.amount<=0) return;
+    const start = /^\d{4}-\d{2}$/.test(f.autoStart||'') ? f.autoStart : thisMonth;
+    let ym = start;
+    let guard = 0;
+    while(ym <= thisMonth && guard++ < 240){
+      const date = recurringDate(ym, parseInt(f.postDay)||1);
+      if(date <= todayStr){
+        const rkey = f.id + '|' + ym;
+        const exists = state.transactions.some(t=>t.recurringKey===rkey);
+        if(!exists){
+          state.transactions.push({
+            id:uid(), date, merchant:f.label, amount:f.amount, category:f.category,
+            src:'recurring', recurringKey:rkey, recurringFixedId:f.id, recurringMonth:ym
+          });
+          changed = true;
+        }
+      }
+      ym = addMonthsKey(ym, 1);
+    }
+  });
+  if(changed){
+    try{ localStorage.setItem('kakeiOS', JSON.stringify(state)); }catch(e){}
+  }
+  return changed;
+}
+
 /* ========== 集計 ========== */
 function cycleStats(cycle){
   const tx = state.transactions.filter(t => cycleOf(t.date) === cycle);
@@ -420,8 +466,9 @@ function renderDash(){
     </tr>`;
   }).join('');
 
-  // カテゴリ×月の推移マトリクス(直近6サイクル)
-  const matCycles = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().slice(-6);
+  // カテゴリ×月の推移マトリクス(表示年の1月〜表示月)
+  const matEndMonth = parseInt(cyc.slice(5,7));
+  const matCycles = Array.from({length:matEndMonth}, (_,i)=> year + '-' + String(i+1).padStart(2,'0'));
   const matData = {};
   state.transactions.forEach(t=>{
     const c = cycleOf(t.date);
@@ -433,12 +480,17 @@ function renderDash(){
   const matCats = Object.keys(matData).sort((a,b)=>matSum(b)-matSum(a));
   const matColTotals = matCycles.map(c=>matCats.reduce((s,cat)=>s+(matData[cat][c]||0),0));
   const fmtCell = v => v ? (v>=10000 ? (v/10000).toFixed(1)+'万' : v.toLocaleString()) : '<span style="color:var(--faint)">—</span>';
-  const matHead = matCycles.map(c=>`<th class="r" style="${c===cyc?'color:var(--ai); font-weight:700;':''}">${parseInt(c.slice(5,7))}月</th>`).join('');
-  const matRows = matCats.map(cat=>`<tr>
-    <td style="white-space:nowrap">${esc(cat)}${isSacred(cat)?' <span class="pill seiiki">聖</span>':''}</td>
-    ${matCycles.map(c=>{ const v=matData[cat][c]||0; return `<td class="r num ${v?'drill':''}" ${v?`data-cat="${esc(cat)}" data-cyc="${c}"`:''} style="${c===cyc?'background:var(--ai-bg);':''}${v?'cursor:pointer;':''}">${fmtCell(v)}</td>`; }).join('')}
-  </tr>`).join('');
-  const matTotalRow = `<tr style="border-top:2px solid var(--line)"><td><strong>合計</strong></td>${matCycles.map((c,i)=>`<td class="r num" style="${c===cyc?'background:var(--ai-bg);':''}"><strong>${fmtCell(matColTotals[i])}</strong></td>`).join('')}</tr>`;
+  const matHead = matCycles.map(c=>`<th class="r" style="${c===cyc?'color:var(--ai); font-weight:700;':''}">${parseInt(c.slice(5,7))}月</th>`).join('') + '<th class="r" style="border-left:2px solid var(--line)">合計</th>';
+  const matRows = matCats.map(cat=>{
+    const rowTotal = matSum(cat);
+    return `<tr>
+      <td style="white-space:nowrap">${esc(cat)}${isSacred(cat)?' <span class="pill seiiki">聖</span>':''}</td>
+      ${matCycles.map(c=>{ const v=matData[cat][c]||0; return `<td class="r num ${v?'drill':''}" ${v?`data-cat="${esc(cat)}" data-cyc="${c}"`:''} style="${c===cyc?'background:var(--ai-bg);':''}${v?'cursor:pointer;':''}">${fmtCell(v)}</td>`; }).join('')}
+      <td class="r num" style="border-left:2px solid var(--line); font-weight:700">${fmtCell(rowTotal)}</td>
+    </tr>`;
+  }).join('');
+  const matGrandTotal = matColTotals.reduce((s,v)=>s+v,0);
+  const matTotalRow = `<tr style="border-top:2px solid var(--line)"><td><strong>合計</strong></td>${matCycles.map((c,i)=>`<td class="r num" style="${c===cyc?'background:var(--ai-bg);':''}"><strong>${fmtCell(matColTotals[i])}</strong></td>`).join('')}<td class="r num" style="border-left:2px solid var(--line)"><strong>${fmtCell(matGrandTotal)}</strong></td></tr>`;
 
   let detailCard = '';
   if(dashDetail){
@@ -461,7 +513,7 @@ function renderDash(){
   const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
 
   const monthIncome = state.incomes.filter(i=>i.month===cyc).reduce((s,i)=>s+i.amount,0);
-  const fixedOther = state.fixed.filter(f=>f.active && f.method==='other').reduce((s,f)=>s+f.amount,0);
+  const fixedOther = state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost).reduce((s,f)=>s+f.amount,0);
   const fixedAmex = state.fixed.filter(f=>f.active && f.method==='amex').reduce((s,f)=>s+f.amount,0);
   const cancelSave = state.fixed.filter(f=>f.active && f.cancel).reduce((s,f)=>s+f.amount,0);
 
@@ -553,7 +605,7 @@ function renderDash(){
     </table></div>
   </div>`:''}
   ${matCats.length?`<div class="card">
-    <h2>カテゴリ推移 <span class="hint">直近${matCycles.length}か月・請求月ベース・青列=表示中の月・単位は円(万=1万円)</span></h2>
+    <h2>カテゴリ推移 <span class="hint">${year}年1月〜${matEndMonth}月・請求月ベース・右端=年初来合計・青列=表示中の月</span></h2>
     <div style="overflow-x:auto"><table style="font-size:12.5px">
       <tr><th>カテゴリ</th>${matHead}</tr>
       ${matRows}
@@ -573,9 +625,9 @@ function renderDash(){
       <h2>月の総収支(表示中の月) <span class="hint">アメックス外の固定費も含めた全体像</span></h2>
       <table>
         <tr><td>収入(登録分)</td><td class="r num">${monthIncome>0?yen(monthIncome):'<span class="muted">未登録</span>'}</td></tr>
-        <tr><td>アメックス実績</td><td class="r num">${yen(st.total)}</td></tr>
-        <tr><td>アメックス外の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
-        ${state.fixed.filter(f=>f.active && f.method==='other' && f.amount>0).map(f=>`
+        <tr><td>明細実績(AMEX＋手動/自動)</td><td class="r num">${yen(st.total)}</td></tr>
+        <tr><td>明細未計上の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
+        ${state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost && f.amount>0).map(f=>`
         <tr><td class="muted" style="padding-left:20px; font-size:12.5px">└ ${esc(f.label)}</td><td class="r num muted" style="font-size:12.5px">${yen(f.amount)}</td></tr>`).join('')}
         <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
         ${monthIncome>0?`<tr><td><strong>収支差額(投資余力)</strong></td><td class="r num ${monthIncome-st.total-fixedOther>=0?'oktext':'warntext'}"><strong>${yen(monthIncome-st.total-fixedOther)}</strong></td></tr>`:''}
@@ -609,6 +661,7 @@ function renderDash(){
 /* ---------- 明細 ---------- */
 let txMonth = '';
 function renderTx(){
+  ensureRecurringTransactions();
   const el = document.getElementById('tab-tx');
   const cycles = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().reverse();
   if(!txMonth || (!cycles.includes(txMonth) && cycles.length)) txMonth = cycles[0] || currentCycle();
@@ -617,9 +670,9 @@ function renderTx(){
 
   const catOpts = c => catNamesSel().map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
   const rows = tx.map(t=>`
-    <tr data-id="${t.id}" style="${t.src==='manual'?'background:var(--ok-bg);':''}">
+    <tr data-id="${t.id}" style="${t.src==='manual'||t.src==='recurring'?'background:var(--ok-bg);':''}">
       <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
-      <td>${t.src==='manual'?'<span class="pill ok">手動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
+      <td>${t.src==='manual'?'<span class="pill ok">手動</span> ':t.src==='recurring'?'<span class="pill ok">自動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
       <td class="r num">${yen(t.amount)}</td>
       <td><select class="txcat">${catOpts(t.category)}</select></td>
       <td style="white-space:nowrap"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
@@ -856,6 +909,8 @@ function renderFixed(){
       <td><span class="pill ${f.method==='amex'?'ai':'ok'}">${f.method==='amex'?'AMEX':'その他'}</span></td>
       <td class="r num">${yen(f.amount)}</td>
       <td class="r num muted">${yen(f.amount*12)}</td>
+      <td style="text-align:center">${f.method==='other'?`<input type="checkbox" class="fxauto" ${f.autoPost?'checked':''} title="毎月、明細へ自動計上">`:'<span class="muted">—</span>'}</td>
+      <td style="white-space:nowrap">${f.method==='other'?`<input type="number" class="fxday" min="1" max="28" value="${f.postDay||1}" style="width:62px" ${f.autoPost?'':'disabled'}>日`:'<span class="muted">—</span>'}</td>
       <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
       <td style="white-space:nowrap"><button class="btn small fxup" ${fxSort.key?'disabled':''} title="${fxSort.key?'見出しソート解除後に使えます':''}">↑</button> <button class="btn small fxdown" ${fxSort.key?'disabled':''}>↓</button> <button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
     </tr>`).join('');
@@ -865,7 +920,7 @@ function renderFixed(){
     <div class="card"><div class="label">アメックス外の固定費(月)</div><div class="bignum num">${yen(totOther)}</div><p class="muted">家賃・塾代など明細に出ないもの</p></div>
   </div>
   <div class="card">
-    <h2>固定費・サブスク一覧 <span class="hint">「解約候補」にチェックするとダッシュボードの削減見込みに反映</span></h2>
+    <h2>固定費・サブスク一覧 <span class="hint">AMEX外は「自動明細」をONにすると毎月指定日に明細へ自動計上</span></h2>
     <div style="overflow-x:auto"><table>
       <tr>
         <th class="fxsort" data-key="label" style="cursor:pointer">項目${arrow('label')}</th>
@@ -873,6 +928,8 @@ function renderFixed(){
         <th class="fxsort" data-key="method" style="cursor:pointer">支払${arrow('method')}</th>
         <th class="r fxsort" data-key="amount" style="cursor:pointer">月額${arrow('amount')}</th>
         <th class="r">年換算</th>
+        <th>自動明細</th>
+        <th>計上日</th>
         <th class="fxsort" data-key="cancel" style="cursor:pointer">解約候補${arrow('cancel')}</th>
         <th></th>
       </tr>
@@ -902,7 +959,7 @@ function renderFixed(){
     const label = el.querySelector('#fxLabel').value.trim();
     const amount = parseInt(el.querySelector('#fxAmount').value)||0;
     if(!label){ alert('項目名を入力してください'); return; }
-    state.fixed.push({id:uid(), label, amount, method:el.querySelector('#fxMethod').value, category:el.querySelector('#fxCat').value, cancel:false, active:true, note:''});
+    state.fixed.push({id:uid(), label, amount, method:el.querySelector('#fxMethod').value, category:el.querySelector('#fxCat').value, cancel:false, active:true, note:'', autoPost:false, postDay:1, autoStart:null});
     persist(); renderFixed();
   };
   el.querySelectorAll('tr[data-id]').forEach(tr=>{
@@ -919,6 +976,18 @@ function renderFixed(){
     };
     const fc = tr.querySelector('.fxcat');
     if(fc) fc.onchange = e=>{ f.category = e.target.value; persist(); renderFixed(); };
+    const fa = tr.querySelector('.fxauto');
+    if(fa) fa.onchange = e=>{
+      f.autoPost = e.target.checked;
+      if(f.autoPost){
+        f.postDay = parseInt(f.postDay)||1;
+        if(!f.autoStart) f.autoStart = monthKey();
+        ensureRecurringTransactions();
+      }
+      persist(); renderFixed();
+    };
+    const fd = tr.querySelector('.fxday');
+    if(fd) fd.onchange = e=>{ f.postDay = Math.min(28, Math.max(1, parseInt(e.target.value)||1)); persist(); ensureRecurringTransactions(); renderFixed(); };
     tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
     tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
     tr.querySelector('.fxdel').onclick = ()=>{
@@ -1334,7 +1403,7 @@ function renderSettings(){
     const f = e.target.files[0]; if(!f) return;
     const r = new FileReader();
     r.onload = ev=>{
-      try{ state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(ev.target.result)); persist(); render(); alert('インポートしました'); }
+      try{ state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(ev.target.result)); ensureRecurringTransactions(); persist(); render(); alert('インポートしました'); }
       catch(err){ alert('JSONの解析に失敗しました'); }
     };
     r.readAsText(f);
@@ -1364,7 +1433,7 @@ function buildTxCsv(range){
     .sort((a,b)=>a.date<b.date?-1:1).map(t=>[
     t.date, t.merchant.replace(/,/g,' '), t.amount, t.category,
     isSacred(t.category)?'聖域':'', (!isSacred(t.category)&&isExcluded(t.category))?'経常除外':'',
-    t.src==='manual'?'手動':''
+    t.src==='manual'?'手動':(t.src==='recurring'?'自動':'')
   ].join(','));
   return '日付,店名,金額,カテゴリ,聖域,経常除外,入力\n' + rows.join('\n');
 }
@@ -1386,7 +1455,7 @@ function buildReport(range){
   L.push('## 月次サマリー(請求サイクル: 前月22日〜21日)');
   L.push('| 月 | 合計 | 経常 | 聖域 | 経常除外 | 経常予算比 | 収入 | 収支差額 |');
   L.push('|---|---|---|---|---|---|---|---|');
-  const fixedOther = state.fixed.filter(f=>f.active && f.method==='other').reduce((s,f)=>s+f.amount,0);
+  const fixedOther = state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost).reduce((s,f)=>s+f.amount,0);
   mergedHistory().filter(h=>cycles.includes(h.cycle)).forEach(h=>{
     const st = cycleStats(h.cycle);
     const isComputed = st.count > 0;
@@ -1399,9 +1468,9 @@ function buildReport(range){
       + ' | ' + Math.round(base/budget*100) + '% | ' + (inc>0?yen(inc):'未入力')
       + ' | ' + (balance!==null?yen(balance):'-') + ' |' + (isComputed?'':' ※概算'));
   });
-  L.push('※収支差額 = 収入 − アメックス合計 − アメックス外固定費(' + yen(fixedOther) + '/月)');
+  L.push('※収支差額 = 収入 − 明細合計 − 明細未計上の固定費(' + yen(fixedOther) + '/月)');
   L.push('');
-  L.push('## カテゴリ別実績(対象期間内・アメックス明細ベース)');
+  L.push('## カテゴリ別実績(対象期間内・AMEX＋手動/自動明細)');
   const catTot = {};
   state.transactions.forEach(t=>{ if(cycles.includes(cycleOf(t.date))) catTot[t.category]=(catTot[t.category]||0)+t.amount; });
   Object.entries(catTot).sort((a,b)=>b[1]-a[1]).forEach(([c,v])=>{
@@ -1461,7 +1530,7 @@ async function gasLoad(){
       const gasUrl = state.settings.gasUrl;
       state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data);
       state.settings.gasUrl = gasUrl;
-      persist(); render();
+      ensureRecurringTransactions(); persist(); render();
       setSync('読込済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
     } else { setSync('クラウドにデータなし'); }
   }catch(e){ setSync('読込失敗'); alert('読込に失敗しました: '+e.message); }
@@ -1530,6 +1599,7 @@ function activeTabName(){
 
 /* ---------- 起動 ---------- */
 applyTheme();
+ensureRecurringTransactions();
 render();
 setSync('ローカル保存モード');
 </script>
