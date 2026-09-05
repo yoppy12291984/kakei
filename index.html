@@ -121,7 +121,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.4 — 年初来カテゴリ推移・定期明細</span>
+  <span class="ver">Ver.3.5 — 年別カテゴリ推移・定期明細の過去生成</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -301,8 +301,12 @@ function ensureRecurringTransactions(){
       const date = recurringDate(ym, parseInt(f.postDay)||1);
       if(date <= todayStr){
         const rkey = f.id + '|' + ym;
-        const exists = state.transactions.some(t=>t.recurringKey===rkey);
-        if(!exists){
+        const existsRecurring = state.transactions.some(t=>t.recurringKey===rkey);
+        // 過去に同じ固定費を手動入力している場合は重複を避ける
+        const existsSameManual = state.transactions.some(t=>
+          cycleOf(t.date)===ym && t.merchant===f.label && t.amount===f.amount && t.src==='manual'
+        );
+        if(!existsRecurring && !existsSameManual){
           state.transactions.push({
             id:uid(), date, merchant:f.label, amount:f.amount, category:f.category,
             src:'recurring', recurringKey:rkey, recurringFixedId:f.id, recurringMonth:ym
@@ -606,6 +610,10 @@ function renderDash(){
   </div>`:''}
   ${matCats.length?`<div class="card">
     <h2>カテゴリ推移 <span class="hint">${year}年1月〜${matEndMonth}月・請求月ベース・右端=年初来合計・青列=表示中の月</span></h2>
+    <div class="row mb" style="justify-content:flex-end">
+      <button class="btn small" id="matPrevYear">◀ ${Number(year)-1}年</button>
+      ${Number(year)<new Date().getFullYear()?`<button class="btn small" id="matNextYear">${Number(year)+1}年 ▶</button>`:''}
+    </div>
     <div style="overflow-x:auto"><table style="font-size:12.5px">
       <tr><th>カテゴリ</th>${matHead}</tr>
       ${matRows}
@@ -654,6 +662,15 @@ function renderDash(){
       if(card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
     };
   });
+  const py = el.querySelector('#matPrevYear');
+  if(py) py.onclick = ()=>{ dashCycle = (Number(year)-1) + '-12'; dashDetail = null; renderDash(); };
+  const ny = el.querySelector('#matNextYear');
+  if(ny) ny.onclick = ()=>{
+    const targetYear = Number(year)+1;
+    const nowYear = new Date().getFullYear();
+    dashCycle = targetYear===nowYear ? currentCycle() : targetYear + '-12';
+    dashDetail = null; renderDash();
+  };
   const dc = el.querySelector('#detailClose');
   if(dc) dc.onclick = ()=>{ dashDetail = null; renderDash(); };
 }
@@ -911,6 +928,7 @@ function renderFixed(){
       <td class="r num muted">${yen(f.amount*12)}</td>
       <td style="text-align:center">${f.method==='other'?`<input type="checkbox" class="fxauto" ${f.autoPost?'checked':''} title="毎月、明細へ自動計上">`:'<span class="muted">—</span>'}</td>
       <td style="white-space:nowrap">${f.method==='other'?`<input type="number" class="fxday" min="1" max="28" value="${f.postDay||1}" style="width:62px" ${f.autoPost?'':'disabled'}>日`:'<span class="muted">—</span>'}</td>
+      <td style="white-space:nowrap">${f.method==='other'?`<input type="month" class="fxstart" value="${f.autoStart||monthKey()}" style="width:132px" ${f.autoPost?'':'disabled'}> <button class="btn small fxbackfill" ${f.autoPost?'':'disabled'}>過去分生成</button>`:'<span class="muted">—</span>'}</td>
       <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
       <td style="white-space:nowrap"><button class="btn small fxup" ${fxSort.key?'disabled':''} title="${fxSort.key?'見出しソート解除後に使えます':''}">↑</button> <button class="btn small fxdown" ${fxSort.key?'disabled':''}>↓</button> <button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
     </tr>`).join('');
@@ -920,7 +938,7 @@ function renderFixed(){
     <div class="card"><div class="label">アメックス外の固定費(月)</div><div class="bignum num">${yen(totOther)}</div><p class="muted">家賃・塾代など明細に出ないもの</p></div>
   </div>
   <div class="card">
-    <h2>固定費・サブスク一覧 <span class="hint">AMEX外は「自動明細」をONにすると毎月指定日に明細へ自動計上</span></h2>
+    <h2>固定費・サブスク一覧 <span class="hint">AMEX外は「自動明細」をON。開始月を過去にして「過去分生成」で一括作成できます</span></h2>
     <div style="overflow-x:auto"><table>
       <tr>
         <th class="fxsort" data-key="label" style="cursor:pointer">項目${arrow('label')}</th>
@@ -930,6 +948,7 @@ function renderFixed(){
         <th class="r">年換算</th>
         <th>自動明細</th>
         <th>計上日</th>
+        <th>開始月 / 過去分</th>
         <th class="fxsort" data-key="cancel" style="cursor:pointer">解約候補${arrow('cancel')}</th>
         <th></th>
       </tr>
@@ -988,6 +1007,20 @@ function renderFixed(){
     };
     const fd = tr.querySelector('.fxday');
     if(fd) fd.onchange = e=>{ f.postDay = Math.min(28, Math.max(1, parseInt(e.target.value)||1)); persist(); ensureRecurringTransactions(); renderFixed(); };
+    const fs = tr.querySelector('.fxstart');
+    if(fs) fs.onchange = e=>{ if(/^\d{4}-\d{2}$/.test(e.target.value)) f.autoStart = e.target.value; persist(); };
+    const fb = tr.querySelector('.fxbackfill');
+    if(fb) fb.onclick = ()=>{
+      const start = tr.querySelector('.fxstart')?.value;
+      if(!/^\d{4}-\d{2}$/.test(start||'')){ alert('開始月を選択してください'); return; }
+      if(start > monthKey()){ alert('開始月は今月以前を選択してください'); return; }
+      f.autoStart = start;
+      const before = state.transactions.filter(t=>t.recurringFixedId===f.id).length;
+      ensureRecurringTransactions();
+      const after = state.transactions.filter(t=>t.recurringFixedId===f.id).length;
+      persist(); renderFixed();
+      alert(`「${f.label}」の${start}〜${monthKey()}を確認し、${Math.max(0,after-before)}件の過去明細を追加しました。\n同名・同額の手動明細がある月は重複を避けてスキップします。`);
+    };
     tr.querySelector('.fxcancel').onchange = e=>{ f.cancel = e.target.checked; persist(); renderFixed(); };
     tr.querySelector('.fxtoggle').onclick = ()=>{ f.active = !f.active; persist(); renderFixed(); };
     tr.querySelector('.fxdel').onclick = ()=>{
