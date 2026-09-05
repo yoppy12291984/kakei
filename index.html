@@ -119,7 +119,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.2.8</span>
+  <span class="ver">Ver.2.9 — スワイプ切替</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -297,7 +297,10 @@ function leisureYearTotal(year){
 
 /* ========== 描画 ========== */
 function switchTab(name){
-  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('nav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===name);
+    if(b.dataset.tab===name) b.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
+  });
   ['dash','tx','fixed','income','todo','settings'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
   });
@@ -1350,6 +1353,36 @@ if(window.matchMedia){
     if((state.settings.theme||'light')==='auto') applyTheme();
   });
 }
+
+/* ---------- スワイプでタブ切替 ---------- */
+const TAB_ORDER = ['dash','tx','fixed','income','todo','settings'];
+function activeTabName(){
+  const b = document.querySelector('nav button.active');
+  return b ? b.dataset.tab : 'dash';
+}
+(function(){
+  const area = document.querySelector('main');
+  let sx = null, sy = null, ok = false;
+  area.addEventListener('touchstart', e=>{
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; ok = true;
+    // 横スクロールできる表の中から始まったスワイプは無視(表のスクロールを優先)
+    let el = e.target;
+    while(el && el !== area){
+      if(el.scrollWidth > el.clientWidth + 5){ ok = false; break; }
+      el = el.parentElement;
+    }
+  }, {passive:true});
+  area.addEventListener('touchend', e=>{
+    if(!ok || sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx;
+    const dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if(Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.8) return; // 縦スクロールや小さな動きは無視
+    const i = TAB_ORDER.indexOf(activeTabName());
+    const ni = dx < 0 ? i + 1 : i - 1;
+    if(ni >= 0 && ni < TAB_ORDER.length) switchTab(TAB_ORDER[ni]);
+  }, {passive:true});
+})();
 
 /* ---------- 起動 ---------- */
 applyTheme();
