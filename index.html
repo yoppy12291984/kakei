@@ -200,7 +200,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.8.3 — 妻払い区分</span>
+  <span class="ver">Ver.3.8.4 — パートナー払いを別段に</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -757,7 +757,7 @@ function renderDash(){
         <tr><td>収入(登録分)</td><td class="r num">${monthIncome>0?yen(monthIncome):'<span class="muted">未登録</span>'}</td></tr>
         <tr><td>明細実績(AMEX＋手動/自動)</td><td class="r num">${yen(st.total)}</td></tr>
         <tr><td>明細未計上の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
-        ${state.fixed.filter(f=>f.active && f.method==='chisa' && f.amount>0).length?`<tr><td class="muted">妻払いの固定費(参考・差額に含めず)</td><td class="r num muted">${yen(state.fixed.filter(f=>f.active && f.method==='chisa').reduce((s,f)=>s+f.amount,0))}</td></tr>`:''}
+        ${state.fixed.filter(f=>f.active && f.method==='chisa' && f.amount>0).length?`<tr><td class="muted">パートナー払いの固定費(参考・差額に含めず)</td><td class="r num muted">${yen(state.fixed.filter(f=>f.active && f.method==='chisa').reduce((s,f)=>s+f.amount,0))}</td></tr>`:''}
         ${state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost && f.amount>0).map(f=>`
         <tr><td class="muted" style="padding-left:20px; font-size:12.5px">└ ${esc(f.label)}</td><td class="r num muted" style="font-size:12.5px">${yen(f.amount)}</td></tr>`).join('')}
         <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
@@ -1074,11 +1074,11 @@ function renderFixed(){
     });
   }
   const arrow = k => fxSort.key===k ? (fxSort.dir===1?' ▲':' ▼') : '';
-  const rows = list.map(f=>`
+  const rowHtml = f=>`
     <tr data-id="${f.id}" style="${f.active?'':'opacity:.45'}">
       <td>${esc(f.label)}${f.note?`<br><span class="muted" style="font-size:11px">${esc(f.note)}</span>`:''}</td>
       <td><select class="fxcat">${catNames().map(x=>`<option ${x===f.category?'selected':''}>${x}</option>`).join('')}${catNames().includes(f.category)?'':`<option selected>${esc(f.category)}</option>`}</select></td>
-      <td><span class="pill ${f.method==='amex'?'ai':(f.method==='chisa'?'seiiki':'ok')}">${f.method==='amex'?'AMEX':(f.method==='chisa'?'妻':'その他')}</span></td>
+      <td><span class="pill ${f.method==='amex'?'ai':(f.method==='chisa'?'seiiki':'ok')}">${f.method==='amex'?'AMEX':(f.method==='chisa'?'パートナー':'その他')}</span></td>
       <td class="r num">${yen(f.amount)}</td>
       <td class="r num muted">${yen(f.amount*12)}</td>
       <td style="text-align:center">${f.method==='other'?`<input type="checkbox" class="fxauto" ${f.autoPost?'checked':''} title="毎月、明細へ自動計上">`:'<span class="muted">—</span>'}</td>
@@ -1086,11 +1086,13 @@ function renderFixed(){
       <td style="white-space:nowrap">${f.method==='other'?`<input type="month" class="fxstart" value="${f.autoStart||monthKey()}" style="width:132px" ${f.autoPost?'':'disabled'}> <button class="btn small fxbackfill" ${f.autoPost?'':'disabled'}>過去分生成</button>`:'<span class="muted">—</span>'}</td>
       <td style="text-align:center"><input type="checkbox" class="fxcancel" ${f.cancel?'checked':''} title="解約候補"></td>
       <td style="white-space:nowrap"><button class="btn small fxup" ${fxSort.key?'disabled':''} title="${fxSort.key?'見出しソート解除後に使えます':''}">↑</button> <button class="btn small fxdown" ${fxSort.key?'disabled':''}>↓</button> <button class="btn small fxedit">編集</button> <button class="btn small fxtoggle">${f.active?'停止':'再開'}</button> <button class="btn small fxdel">×</button></td>
-    </tr>`).join('');
+    </tr>`;
+  const rows = list.filter(f=>f.method!=='chisa').map(rowHtml).join('');
+  const partnerRows = list.filter(f=>f.method==='chisa').map(rowHtml).join('');
   el.innerHTML = `
   <div class="grid2">
     <div class="card"><div class="label">アメックス払いの固定費(月)</div><div class="bignum num">${yen(totAmex)}</div></div>
-    <div class="card"><div class="label">アメックス外の固定費(月)</div><div class="bignum num">${yen(totOther)}</div><p class="muted">家賃・塾代など明細に出ないもの${totChisa>0?` / 妻払い <span class="num">${yen(totChisa)}</span>(収支差額には含めません)`:''}</p></div>
+    <div class="card"><div class="label">アメックス外の固定費(月)</div><div class="bignum num">${yen(totOther)}</div><p class="muted">家賃・塾代など明細に出ないもの${totChisa>0?` / パートナー払い <span class="num">${yen(totChisa)}</span>(収支差額には含めません)`:''}</p></div>
   </div>
   <div class="card">
     <h2>固定費・サブスク一覧 <span class="hint">AMEX外は「自動明細」をON。開始月を過去にして「過去分生成」で一括作成できます</span></h2>
@@ -1109,10 +1111,16 @@ function renderFixed(){
       </tr>
       ${rows}
     </table></div>
+    ${partnerRows?`
+    <h2 class="mt">パートナー払い <span class="hint">世帯の固定費として表示。収支差額には含めません</span> <span class="num muted" style="font-size:12px">小計 ${yen(totChisa)}/月</span></h2>
+    <div style="overflow-x:auto"><table>
+      <tr><th>項目</th><th>分類</th><th>支払</th><th class="r">月額</th><th class="r">年換算</th><th>自動明細</th><th>計上日</th><th>開始月 / 過去分</th><th>解約候補</th><th></th></tr>
+      ${partnerRows}
+    </table></div>`:''}
     <div class="row mt">
       <input type="text" id="fxLabel" placeholder="項目名" style="flex:1; min-width:150px">
       <input type="number" id="fxAmount" placeholder="月額" style="width:100px">
-      <select id="fxMethod"><option value="amex">AMEX</option><option value="other">その他</option><option value="chisa">妻</option></select>
+      <select id="fxMethod"><option value="amex">AMEX</option><option value="other">その他</option><option value="chisa">パートナー</option></select>
       <select id="fxCat">${catNames().map(c=>`<option>${c}</option>`).join('')}</select>
       <button class="btn primary" id="fxAdd">追加</button>
     </div>
@@ -1674,7 +1682,7 @@ function buildReport(range){
   L.push('');
   L.push('## 固定費・サブスク(アクティブのみ)');
   state.fixed.filter(f=>f.active).forEach(f=>{
-    L.push('- ' + f.label + ': ' + yen(f.amount) + '/月(' + (f.method==='amex'?'AMEX':(f.method==='chisa'?'妻払い':'その他')) + '・' + f.category + ')'
+    L.push('- ' + f.label + ': ' + yen(f.amount) + '/月(' + (f.method==='amex'?'AMEX':(f.method==='chisa'?'パートナー払い':'その他')) + '・' + f.category + ')'
       + (f.cancel?' ★解約候補':'') + (f.note?' — ' + f.note:''));
   });
   L.push('');
