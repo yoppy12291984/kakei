@@ -156,12 +156,36 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   }
 }
 
+/* ---------- 月次推移：1月から横スワイプ ---------- */
+.monthly-chart-scroll{
+  overflow-x:auto;
+  overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding-bottom:8px;
+  scrollbar-width:thin;
+}
+.chart.monthly-chart{
+  min-width:max-content;
+  justify-content:flex-start;
+  gap:12px;
+}
+.chart.monthly-chart .col{
+  flex:0 0 70px;
+  width:70px;
+}
+@media(max-width:700px){
+  .chart.monthly-chart .col{
+    flex-basis:66px;
+    width:66px;
+  }
+}
+
 </style>
 </head>
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.6 — 明細モバイル表示・定期明細削除修正</span>
+  <span class="ver">Ver.3.7 — 固定費ダッシュボード・月次推移年移動</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -425,7 +449,8 @@ function render(tab){
 }
 
 let dashCycle = null;
-let dashDetail = null; // {cat, cycle} カテゴリ明細のドリルダウン表示
+let dashDetail = null;
+let trendYear = null; // 月次推移で表示する年 // {cat, cycle} カテゴリ明細のドリルダウン表示
 function defaultDashCycle(){
   const cur = currentCycle();
   if(cycleStats(cur).count > 0) return cur;
@@ -565,13 +590,38 @@ function renderDash(){
     </div>`;
   }
 
-  const hist = mergedHistory().slice(-8);
-  const maxTotal = Math.max(400000, ...hist.map(h=>h.total));
+  // 月次推移：表示年の1月から横スワイプで確認
+  const nowYear = new Date().getFullYear();
+  const chartYear = String(trendYear || Number(year));
+  const currentCycleMonth = parseInt(currentCycle().slice(5,7));
+  const chartEndMonth = Number(chartYear) < nowYear ? 12
+    : Number(chartYear) === nowYear ? currentCycleMonth
+    : 12;
+  const histMap = {};
+  mergedHistory().forEach(h=>{ histMap[h.cycle] = h; });
+  const hist = Array.from({length:chartEndMonth}, (_,i)=>{
+    const c = chartYear + '-' + String(i+1).padStart(2,'0');
+    return histMap[c] || {cycle:c, total:0, leisure:0, seed:false, empty:true};
+  });
+  const maxTotal = Math.max(400000, ...hist.map(h=>h.total||0));
 
   const monthIncome = state.incomes.filter(i=>i.month===cyc).reduce((s,i)=>s+i.amount,0);
   const fixedOther = state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost).reduce((s,f)=>s+f.amount,0);
   const fixedAmex = state.fixed.filter(f=>f.active && f.method==='amex').reduce((s,f)=>s+f.amount,0);
   const cancelSave = state.fixed.filter(f=>f.active && f.cancel).reduce((s,f)=>s+f.amount,0);
+
+  // ダッシュボード表示用の固定費一覧（集計には二重加算しない）
+  const activeFixed = state.fixed.filter(f=>f.active);
+  const fixedRegisteredTotal = activeFixed.reduce((s,f)=>s+(f.amount||0),0);
+  const fixedRegisteredAmex = activeFixed.filter(f=>f.method==='amex').reduce((s,f)=>s+(f.amount||0),0);
+  const fixedRegisteredOther = activeFixed.filter(f=>f.method==='other').reduce((s,f)=>s+(f.amount||0),0);
+  const fixedDashRows = activeFixed.map(f=>`
+    <tr>
+      <td>${esc(f.label)}${f.cancel?' <span class="pill warn">解約候補</span>':''}</td>
+      <td>${esc(f.category)}</td>
+      <td><span class="pill ${f.method==='amex'?'ai':'ok'}">${f.method==='amex'?'AMEX':'その他'}</span>${f.autoPost?' <span class="pill ok">自動明細</span>':''}</td>
+      <td class="r num" style="white-space:nowrap">${yen(f.amount||0)}</td>
+    </tr>`).join('');
 
   let chartCols = hist.map(h=>{
     const cst = cycleStats(h.cycle);
@@ -583,13 +633,14 @@ function renderDash(){
     const lh = Math.round(h.leisure/maxTotal*140);
     const label = parseInt(h.cycle.slice(5,7)) + '月';
     const topRadius = 'border-radius:4px 4px 0 0;';
+    const dataMark = h.empty ? '' : (h.seed ? '' : '●');
     return `<div class="col">
-      <span class="val num">${Math.round(h.total/10000)}万</span>
+      <span class="val num">${h.total>0?Math.round(h.total/10000)+'万':'—'}</span>
       ${lh>0?`<div class="seg leisure" style="height:${lh}px"></div>`:''}
       ${eh>0?`<div class="seg excl" style="height:${eh}px; ${lh===0?topRadius:''}"></div>`:''}
-      <div class="seg base" style="height:${Math.max(bh,2)}px; ${(lh===0&&eh===0)?topRadius:''}"></div>
-      <span class="cap">${label}${h.seed?'':'●'}</span>
-      <span class="cap num" style="color:var(--ai); margin-top:0;">${Math.round(baseAmt/10000)}万</span>
+      ${baseAmt>0?`<div class="seg base" style="height:${Math.max(bh,2)}px; ${(lh===0&&eh===0)?topRadius:''}"></div>`:'<div style="height:2px"></div>'}
+      <span class="cap">${label}${dataMark}</span>
+      <span class="cap num" style="color:var(--ai); margin-top:0;">${baseAmt>0?Math.round(baseAmt/10000)+'万':'—'}</span>
     </div>`;
   }).join('');
 
@@ -649,10 +700,35 @@ function renderDash(){
     ${envBars}
   </div>`:''}
   <div class="card">
-    <h2>月次推移 <span class="hint">アメックス請求額の内訳(●=明細から集計、無印=初期データ)</span></h2>
-    <div class="chart">${chartCols}</div>
+    <h2>月次推移 <span class="hint">${chartYear}年・1月から横にスワイプして確認できます</span></h2>
+    <div class="row mb" style="justify-content:space-between; align-items:center">
+      <button class="btn small" id="trendPrevYear">◀ ${Number(chartYear)-1}年</button>
+      <strong class="num">${chartYear}年</strong>
+      ${Number(chartYear)<nowYear?`<button class="btn small" id="trendNextYear">${Number(chartYear)+1}年 ▶</button>`:'<span></span>'}
+    </div>
+    <div class="monthly-chart-scroll" id="monthlyChartScroll">
+      <div class="chart monthly-chart">${chartCols}</div>
+    </div>
     <div class="legend"><span class="l1">経常支出(下の青数字)</span><span class="l3">経常除外</span><span class="l2">聖域</span></div>
+    <p class="muted mt" style="font-size:11.5px">●=明細から集計、無印=初期データ。前年・翌年ボタンで年をまたいで確認できます。</p>
   </div>
+  ${activeFixed.length?`<div class="card">
+    <h2>固定費・サブスク <span class="hint">登録中の月額。ここは確認用で、総支出には重複加算しません</span></h2>
+    <div class="grid2 mb">
+      <div>
+        <div class="label">登録固定費 合計</div>
+        <div class="bignum num">${yen(fixedRegisteredTotal)}<small> /月</small></div>
+      </div>
+      <div>
+        <div class="barnote"><span>AMEX</span><span class="num">${yen(fixedRegisteredAmex)}</span></div>
+        <div class="barnote"><span>その他</span><span class="num">${yen(fixedRegisteredOther)}</span></div>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><table>
+      <tr><th>項目</th><th>分類</th><th>支払</th><th class="r">月額</th></tr>
+      ${fixedDashRows}
+    </table></div>
+  </div>`:''}
   ${catEntries.length?`<div class="card">
     <h2>カテゴリ別内訳 <span class="hint">${cyc.replace('-','年')}月請求・前月比は${hasPrev?prevCyc.replace('-','年')+'月請求との差':'前月データなし'}</span></h2>
     <div style="overflow-x:auto"><table>
@@ -701,11 +777,11 @@ function renderDash(){
       <p class="muted mt">対象: ${state.fixed.filter(f=>f.active&&f.cancel).map(f=>esc(f.label)).join('、')||'なし'}</p>
     </div>
   </div>`;
-  el.querySelector('#dashPrev').onclick = ()=>{ dashCycle = shiftCycle(cyc, -1); renderDash(); };
+  el.querySelector('#dashPrev').onclick = ()=>{ dashCycle = shiftCycle(cyc, -1); trendYear = null; renderDash(); };
   const nx = el.querySelector('#dashNext');
-  if(nx) nx.onclick = ()=>{ dashCycle = shiftCycle(cyc, 1); renderDash(); };
+  if(nx) nx.onclick = ()=>{ dashCycle = shiftCycle(cyc, 1); trendYear = null; renderDash(); };
   const td = el.querySelector('#dashToday');
-  if(td) td.onclick = ()=>{ dashCycle = currentCycle(); renderDash(); };
+  if(td) td.onclick = ()=>{ dashCycle = currentCycle(); trendYear = null; renderDash(); };
   el.querySelectorAll('.drill').forEach(d=>{
     d.onclick = ()=>{
       dashDetail = { cat: d.dataset.cat, cycle: d.dataset.cyc };
@@ -714,13 +790,24 @@ function renderDash(){
       if(card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
     };
   });
+  const tpy = el.querySelector('#trendPrevYear');
+  if(tpy) tpy.onclick = ()=>{ trendYear = Number(chartYear)-1; renderDash(); };
+  const tny = el.querySelector('#trendNextYear');
+  if(tny) tny.onclick = ()=>{ trendYear = Number(chartYear)+1; renderDash(); };
+  // 現在年では最初に右端（最新月）が見えるようにする。前年は1月から。
+  const mscroll = el.querySelector('#monthlyChartScroll');
+  if(mscroll && Number(chartYear)===nowYear){
+    requestAnimationFrame(()=>{ mscroll.scrollLeft = mscroll.scrollWidth; });
+  }
+
   const py = el.querySelector('#matPrevYear');
-  if(py) py.onclick = ()=>{ dashCycle = (Number(year)-1) + '-12'; dashDetail = null; renderDash(); };
+  if(py) py.onclick = ()=>{ dashCycle = (Number(year)-1) + '-12'; trendYear = Number(year)-1; dashDetail = null; renderDash(); };
   const ny = el.querySelector('#matNextYear');
   if(ny) ny.onclick = ()=>{
     const targetYear = Number(year)+1;
     const nowYear = new Date().getFullYear();
     dashCycle = targetYear===nowYear ? currentCycle() : targetYear + '-12';
+    trendYear = targetYear;
     dashDetail = null; renderDash();
   };
   const dc = el.querySelector('#detailClose');
