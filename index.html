@@ -200,7 +200,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.8 — 月次推移コンパクト化・固定費簡略表示</span>
+  <span class="ver">Ver.3.8.2 — 既定表示は締め済み月</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -467,10 +467,13 @@ let dashCycle = null;
 let dashDetail = null;
 let trendYear = null; // 月次推移で表示する年 // {cat, cycle} カテゴリ明細のドリルダウン表示
 function defaultDashCycle(){
-  const cur = currentCycle();
-  if(cycleStats(cur).count > 0) return cur;
+  // 請求サイクルが締まる(21日)までは、直近の締め済み月をデフォルト表示にする
+  const closed = shiftCycle(currentCycle(), -1);
+  if(cycleStats(closed).count > 0) return closed;
   const withData = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort();
-  return withData.length ? withData[withData.length-1] : cur;
+  const past = withData.filter(c=>c <= closed);
+  if(past.length) return past[past.length-1];
+  return withData.length ? withData[withData.length-1] : closed;
 }
 function daysLeftInCycle(cyc){
   if(cyc !== currentCycle()) return null;
@@ -496,7 +499,7 @@ function renderDash(){
   const dlCycle = daysLeftInCycle(cyc);
   if(!state.plans) state.plans = [];
   const planRec = state.plans.filter(p=>!isExcluded(p.category) && cycleOf(p.date)===cyc).reduce((s,p)=>s+p.amount,0);
-  const autoNote = (!dashCycle && !isCurrent) ? 'データのある最新月を表示中' : '';
+  const autoNote = (!dashCycle && !isCurrent) ? '直近の締め済み月を表示中(締め日後にCSV取り込みで更新)' : '';
   const st = cycleStats(cyc);
   const budget = budgetFor(cyc);
   const budgetOverridden = ovr().monthly[cyc] !== undefined;
@@ -1148,6 +1151,12 @@ function renderFixed(){
     const fa = tr.querySelector('.fxauto');
     if(fa) fa.onchange = e=>{
       f.autoPost = e.target.checked;
+      if(f.autoPost && !isExcluded(f.category)){
+        if(confirm(`注意: 「${f.label}」のカテゴリ「${f.category}」は経常支出に含まれるため、自動計上すると経常予算バー(月${yen(state.settings.budgetRecurring)})を大きく圧迫します。\n\nカテゴリ「${f.category}」を「経常除外」に設定しますか?(推奨)`)){
+          const c = state.categories.find(x=>x.name===f.category);
+          if(c) c.excluded = true;
+        }
+      }
       if(f.autoPost){
         f.postDay = parseInt(f.postDay)||1;
         if(!f.autoStart) f.autoStart = monthKey();
