@@ -200,7 +200,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 <body>
 <header>
   <h1>Ledgers OS</h1>
-  <span class="ver">Ver.3.8.4 — パートナー払いを別段に</span>
+  <span class="ver">Ver.3.8.5 — 編集で支払区分変更</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 </header>
@@ -1201,8 +1201,16 @@ function renderFixed(){
     tr.querySelector('.fxedit').onclick = ()=>{
       const label = prompt('項目名', f.label); if(label===null) return;
       const amount = prompt('月額(円)', f.amount); if(amount===null) return;
+      const curM = f.method==='amex'?'1':(f.method==='other'?'2':'3');
+      const m = prompt('支払区分を番号で入力\n1 = AMEX\n2 = その他(自分の口座)\n3 = パートナー', curM);
+      if(m===null) return;
       const note = prompt('メモ', f.note||''); if(note===null) return;
       f.label = label.trim()||f.label; f.amount = parseInt(amount)||0; f.note = note;
+      const mv = m.trim();
+      if(mv==='1') f.method='amex';
+      else if(mv==='2') f.method='other';
+      else if(mv==='3') f.method='chisa';
+      if(f.method!=='other'){ f.autoPost = false; } // 自動明細はその他口座のみ対応
       persist(); renderFixed();
     };
   });
