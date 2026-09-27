@@ -2,7 +2,13 @@
 <html lang="ja">
 <head>
 <script>document.documentElement.classList.add("suite-locked");</script>
-<style>html.suite-locked body{visibility:hidden}</style>
+<style>html.suite-locked body{visibility:hidden}
+#settingsBtn{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--sub);cursor:pointer}
+#settingsBtn:hover,#settingsBtn.active{color:var(--ink);background:var(--line)}
+#settingsBtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+#nav{gap:0;padding:4px 8px 0}
+#nav button{flex:1;padding:10px 8px;min-height:44px;font-size:13px;letter-spacing:0}
+</style>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LEDGER — Household Finance</title>
@@ -218,17 +224,17 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.8.7</span>
+  <span class="ver">Ver.3.8.8</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
+<button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
 <nav id="nav">
-  <button data-tab="dash" class="active">ダッシュボード</button>
-  <button data-tab="tx">明細</button>
-  <button data-tab="fixed">固定費・サブスク</button>
-  <button data-tab="income">収入</button>
-  <button data-tab="todo">Todo</button>
-  <button data-tab="settings">設定</button>
+  <button data-tab="dash" class="active">Home</button>
+  <button data-tab="tx">Log</button>
+  <button data-tab="fixed">Fixed</button>
+  <button data-tab="income">Income</button>
+  <button data-tab="todo">To do</button>
 </nav>
 <main>
   <section id="tab-dash"></section>
@@ -501,6 +507,8 @@ function leisureYearTotal(year){
 /* ========== 描画 ========== */
 function switchTab(name){
   if(name!=='settings'&&!appTabPrefs.visible().includes(name))name=appTabPrefs.initial();
+  document.getElementById('settingsBtn').classList.toggle('active',name==='settings');
+  document.getElementById('settingsBtn').setAttribute('aria-pressed',String(name==='settings'));
   document.querySelectorAll('nav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab===name);
     if(b.dataset.tab===name) b.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
@@ -510,6 +518,7 @@ function switchTab(name){
   });
   render(name);
 }
+document.getElementById('settingsBtn').addEventListener('click',()=>switchTab('settings'));
 document.getElementById('nav').addEventListener('click', e=>{
   if(e.target.dataset.tab) switchTab(e.target.dataset.tab);
 });
@@ -735,7 +744,7 @@ function renderDash(){
       </div>
       <div class="barnote"><span>${st.count}件の明細${dlCycle!==null?`・締め日(21日)まで<span class="num">${dlCycle}</span>日`:``}</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
       ${planRec>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planRec)}</span></span><span class="num ${budget-st.base-planRec<0?'warntext':''}">実質残り ${yen(budget-st.base-planRec)}</span></div>`:''}
-      ${st.count===0?'<p class="muted mt">まだ明細がありません。「明細」タブからアメックスCSVを取り込んでください。</p>':''}
+      ${st.count===0?'<p class="muted mt">まだ明細がありません。「Log」タブからアメックスCSVを取り込んでください。</p>':''}
     </div>
     <div class="card">
     <h2>${esc(labelRec())}(年間) <span class="hint">${year}年・月予算×12(個別予算を反映)</span></h2>
@@ -804,7 +813,7 @@ function renderDash(){
   </div>`:''}
   ${detailCard}
   ${(state.todos||[]).filter(t=>!t.done).length?`<div class="card">
-    <h2>やること <span class="hint">直近のタスク(Todoタブで管理)</span></h2>
+    <h2>やること <span class="hint">直近のタスク(To doタブで管理)</span></h2>
     ${(state.todos||[]).filter(t=>!t.done).sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due<b.due?-1:1;}).slice(0,3).map(t=>{
       const s = todoStatus(t);
       return `<div class="barnote mb"><span>${s==='overdue'?'<span class=\'pill warn\'>期限切れ</span> ':''}${s==='soon'?'<span class=\'pill seiiki\'>まもなく</span> ':''}${esc(t.text)}</span><span class="num muted">${t.due?t.due.slice(5).replace('-','/')+'まで':''}</span></div>`;
@@ -823,7 +832,7 @@ function renderDash(){
         <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
         ${monthIncome>0?`<tr><td><strong>収支差額(投資余力)</strong></td><td class="r num ${monthIncome-st.total-fixedOther>=0?'oktext':'warntext'}"><strong>${yen(monthIncome-st.total-fixedOther)}</strong></td></tr>`:''}
       </table>
-      ${monthIncome===0?'<p class="muted mt">収入タブに給与等を登録すると、収支差額(投資に回せる額)が表示されます。</p>':''}
+      ${monthIncome===0?'<p class="muted mt">Incomeタブに給与等を登録すると、収支差額(投資に回せる額)が表示されます。</p>':''}
     </div>
     <div class="card">
       <h2>解約候補による削減見込み</h2>
@@ -1840,7 +1849,7 @@ if(window.matchMedia){
 /* ---------- スワイプでタブ切替 ---------- */
 const TAB_ORDER = ['dash','tx','fixed','income','todo','settings'];
 function activeTabName(){
-  const b = document.querySelector('nav button.active');
+  const b = document.querySelector('nav button.active, #settingsBtn.active');
   return b ? b.dataset.tab : 'dash';
 }
 (function(){
