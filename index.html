@@ -324,7 +324,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.9.2</span>
+  <span class="ver">Ver.3.9.3</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -358,7 +358,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-settings" class="hidden"></section>
 </main>
 <div class="undo-notice" id="recordUndoNotice" hidden><span id="recordUndoMessage" role="status" aria-live="polite"></span><button type="button" class="btn" id="recordUndoButton">元に戻す</button></div>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.2 · アプリ更新 <time datetime="2026-11-26T08:59:50.593Z">2026/11/26 17:59（日本時間）</time></span></footer>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.3 · アプリ更新 <time datetime="2026-11-26T09:24:32.027Z">2026/11/26 18:24（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -2572,14 +2572,44 @@ appTabPrefs.boot();
 </script>
 <script>window.SuiteDeviceConfig={app:"kakei",name:"Ledgers OS",settingsTarget:"#tab-settings",url:"https://script.google.com/macros/s/AKfycbwTcUYjxaPWYabs6rBR4tBZvr09aImo0xGst7nTptujEUA6JgxAfjtWZfpTomA2KAS3/exec",readUrl(){return (JSON.parse(localStorage.getItem("kakeiOS")||'{}').settings?.gasUrl);},ensureUrl(url){const s=JSON.parse(localStorage.getItem("kakeiOS")||'{}');s.settings=s.settings||{};if(!s.settings.gasUrl)s.settings.gasUrl=url;localStorage.setItem("kakeiOS",JSON.stringify(s));}};
 /* ---------- 端末資格の保持 ---------- */
-function createSuiteCredentialStore({key,storage,indexedDB}){
+function createSuiteCredentialStore({key,storage,indexedDB,cookieDocument,cookieLocation}){
  const revokedKey=key+':revoked',dbName='ledgers-device-credentials-v1';
+ const transferCookie='suite-device-transfer-v1-kakei',transferLifetime=86400000;
  let revision=0,queue=Promise.resolve(),memoryRevoked=new Set(),databaseUnavailable=false;
  const valid=d=>!!d&&typeof d==='object'&&!Array.isArray(d)&&typeof d.token==='string'&&/^[A-Za-z0-9_-]{43}$/.test(d.token);
  const clean=d=>({token:d.token,manager:d.manager===true});
+ function cookieAvailable(){try{const u=new URL(cookieLocation.href);return key==='suite-device-v1:kakei'&&!!cookieDocument&&(u.protocol==='https:'||(u.protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(u.hostname)));}catch(_){return false;}}
+ function transferValue(){
+  if(!cookieAvailable())return null;
+  try{
+   const values=String(cookieDocument.cookie||'').split(';').map(part=>part.trim()).filter(part=>part.startsWith(transferCookie+'='));
+   if(values.length!==1)return null;
+   const encoded=values[0].slice(transferCookie.length+1);if(encoded.length>512)return null;
+   const value=JSON.parse(decodeURIComponent(encoded));
+   return valid(value)&&value.v===1&&Number.isSafeInteger(value.expiresAt)?{v:1,token:value.token,expiresAt:value.expiresAt}:null;
+  }catch(_){return null;}
+ }
+ function clearTransfer(token){
+  if(!cookieAvailable())return;
+  const value=transferValue();if(token&&value&&value.token!==token)return;
+  try{cookieDocument.cookie=transferCookie+'=; Path=/kakei/; Max-Age=0; Secure; SameSite=Strict';}catch(_){}
+ }
+ function readTransfer(){
+  const value=transferValue();if(!value)return null;
+  if(value.expiresAt<=Date.now()||value.expiresAt>Date.now()+transferLifetime+60000||revoked().has(value.token)){clearTransfer(value.token);return null;}
+  return {token:value.token,expiresAt:value.expiresAt};
+ }
+ function writeTransfer(d,expectedTransferToken){
+  if(!valid(d)||revoked().has(d.token)||!cookieAvailable())return false;
+  const primary=readPrimary();if(primary&&primary.token!==d.token)return false;
+  const before=readTransfer();
+  if(arguments.length>1&&before&&before.token!==d.token&&before.token!==expectedTransferToken)return false;
+  const value={v:1,token:d.token,expiresAt:Date.now()+transferLifetime};
+  try{cookieDocument.cookie=transferCookie+'='+encodeURIComponent(JSON.stringify(value))+'; Path=/kakei/; Max-Age=86400; Secure; SameSite=Strict';return readTransfer()?.token===d.token;}catch(_){return false;}
+ }
  function readJson(k){try{return JSON.parse(storage.getItem(k)||'null');}catch(_){return null;}}
  function revoked(){const saved=readJson(revokedKey);return new Set([...memoryRevoked,...(Array.isArray(saved)?saved.filter(t=>typeof t==='string'&&/^[A-Za-z0-9_-]{43}$/.test(t)):[])]);}
- function rememberRevoked(tokens){memoryRevoked=new Set([...revoked(),...tokens.filter(t=>typeof t==='string'&&/^[A-Za-z0-9_-]{43}$/.test(t))]);try{storage.setItem(revokedKey,JSON.stringify([...memoryRevoked]));}catch(_){}}
+ function rememberRevoked(tokens){memoryRevoked=new Set([...revoked(),...tokens.filter(t=>typeof t==='string'&&/^[A-Za-z0-9_-]{43}$/.test(t))]);try{storage.setItem(revokedKey,JSON.stringify([...memoryRevoked]));}catch(_){}const transfer=transferValue();if(transfer&&memoryRevoked.has(transfer.token))clearTransfer(transfer.token);}
  function readPrimary(){const d=readJson(key);return valid(d)&&!revoked().has(d.token)?clean(d):null;}
  function removePrimary(token){const d=readJson(key);if(!d||d.token===token){try{storage.removeItem(key);}catch(_){try{storage.setItem(key,'null');}catch(_){}}}}
  function database(mode,value){
@@ -2617,8 +2647,8 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
  async function save(d,guards={}){
   if(!valid(d)||revoked().has(d.token))return false;
   if(Object.hasOwn(guards,'expectedPrimaryToken')&&(readPrimary()?.token||null)!==guards.expectedPrimaryToken)return false;
-  const copy=clean(d),generation=++revision,primaryBeforeWrite=readPrimary();
-  let primarySaved=false,replacedTokens=[];try{storage.setItem(key,JSON.stringify(copy));const check=readPrimary();primarySaved=!!check&&check.token===copy.token;}catch(_){}
+  const copy=clean(d),generation=++revision,primaryBeforeWrite=readPrimary(),transferBeforeWrite=readTransfer();
+  let primarySaved=false,replacedTokens=[primaryBeforeWrite?.token,transferBeforeWrite?.token].filter(t=>t&&t!==copy.token);try{storage.setItem(key,JSON.stringify(copy));const check=readPrimary();primarySaved=!!check&&check.token===copy.token;}catch(_){}
   const backupSaved=await enqueue(async()=>{
    const result=await database('write',raw=>{
     const old=record({ok:true,value:raw});rememberRevoked(old.revokedTokens);
@@ -2630,14 +2660,16 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
     const replacingUnwritablePrimary=!Object.hasOwn(guards,'expectedPrimaryToken')&&!primarySaved&&currentPrimary?.token===primaryBeforeWrite?.token;
     if(currentPrimary&&currentPrimary.token!==copy.token&&!replacingUnwritablePrimary){revision++;return null;}
     // 新しく登録し直した資格を優先し、書込み不能だった古い控えへ戻さない。
-    replacedTokens=[oldToken,primaryBeforeWrite?.token].filter(t=>t&&t!==copy.token);
+    replacedTokens=[...replacedTokens,oldToken].filter(t=>t&&t!==copy.token);
     return {v:1,credential:copy,revokedTokens:[...new Set([...revoked(),...replacedTokens])]};
    });
    return result.ok&&result.value===true;
   });
-  if(primarySaved||backupSaved)rememberRevoked(replacedTokens);
   if(backupSaved&&primaryBeforeWrite&&primaryBeforeWrite.token!==copy.token)removePrimary(primaryBeforeWrite.token);
-  return generation===revision&&!revoked().has(copy.token)&&(primarySaved||backupSaved);
+  const currentPrimary=readPrimary();
+  const saved=generation===revision&&!revoked().has(copy.token)&&(primarySaved||backupSaved)&&(!currentPrimary||currentPrimary.token===copy.token);
+  if(saved){rememberRevoked(replacedTokens);writeTransfer(copy,transferBeforeWrite?.token||null);}
+  return saved;
  }
  async function restore(){
   const generation=revision,primary=readPrimary();
@@ -2650,14 +2682,14 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
  }
  async function revoke(token){
   if(typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))return;
-  revision++;rememberRevoked([token]);removePrimary(token);
+  revision++;rememberRevoked([token]);removePrimary(token);clearTransfer(token);
   await enqueue(()=>database('write',raw=>{
    const old=record({ok:true,value:raw});rememberRevoked(old.revokedTokens);
    const credential=valid(old.credential)&&!revoked().has(old.credential.token)?clean(old.credential):null;
    return {v:1,credential,revokedTokens:[...revoked()]};
   }));
  }
- return {readPrimary,restore,save,revoke};
+ return {readPrimary,restore,save,revoke,readTransfer,writeTransfer,clearTransfer};
 }
 /* 端末ごとの登録。通常起動はネットワークを待たず、明示失効だけで再登録する。 */
 (function(){
@@ -2666,7 +2698,7 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
  const nativeFetch=window.fetch.bind(window);let device=null,started=false,locked=true,authEpoch=0,checkingPromise=null;
  const parse=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;}};
  const valid=d=>d&&/^[A-Za-z0-9_-]{43}$/.test(d.token||'');
- const credentials=createSuiteCredentialStore({key,storage:{getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},indexedDB:window.indexedDB});
+ const credentials=createSuiteCredentialStore({key,storage:{getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},indexedDB:window.indexedDB,cookieDocument:document,cookieLocation:location});
  function requestPersistence(){try{const p=navigator.storage&&navigator.storage.persist;if(p)Promise.resolve(p.call(navigator.storage)).catch(()=>{});}catch(_){}}
  const css=document.createElement('style');css.textContent='html.suite-locked body>*:not(#suite-access){visibility:hidden!important}#suite-access{visibility:visible!important;font:16px/1.7 system-ui,sans-serif;color:#253b3a}#suite-access[hidden]{display:none!important}#suite-access .suite-card{background:#fff;border:1px solid #d9e6e2;border-radius:24px;padding:28px;max-width:460px;margin:8vh auto;box-shadow:0 16px 60px #183c3420}#suite-access input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #b9cfca;border-radius:10px;margin:6px 0 16px;font:inherit}#suite-access button{font:inherit;padding:10px 16px;border:0;border-radius:12px;background:#326f63;color:white;cursor:pointer;margin:4px}#suite-access p{white-space:pre-wrap}#suite-access code{overflow-wrap:anywhere}#suite-access{position:fixed;inset:0;z-index:2147483647;background:#f1f6f3ee;overflow:auto;padding:12px}#suite-device-settings{position:static;margin:20px 0;padding:16px 0;border-top:1px solid var(--line,#d9e6e2);color:inherit;font:inherit}#suite-device-settings summary{cursor:pointer;font-weight:600;padding:8px 0;min-height:24px}#suite-device-settings p{font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}#suite-device-settings button{font:inherit;font-size:13px;white-space:normal;max-width:100%;padding:10px 14px;margin:6px 8px 6px 0;border:1px solid var(--line,#ccdcd5);border-radius:10px;background:transparent;color:inherit;cursor:pointer}';document.head.append(css);
  const panel=document.createElement('section');panel.id='suite-access';panel.setAttribute('aria-label','端末登録');
@@ -2685,11 +2717,13 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
  function readEndpoint(){let u=cfg.url;try{u=cfg.readUrl()||u;}catch(_){}return endpoint(u);}
  let apiUrl;try{apiUrl=readEndpoint();}catch(_){apiUrl=endpoint(cfg.url);}
  async function save(d,expectedEpoch=authEpoch,refresh=false){
-  if(expectedEpoch!==authEpoch)return;
+  if(expectedEpoch!==authEpoch)return false;
   const current=credentials.readPrimary();
-  if(refresh&&current&&current.token!==d.token){connectionNote='別の画面で登録が更新されました。この画面を開き直してください。';return;}
+  if(refresh&&current&&current.token!==d.token){connectionNote='別の画面で登録が更新されました。この画面を開き直してください。';return false;}
   const saved=await credentials.save(d,refresh?{expectedPrimaryToken:current?.token||null,expectedBackupToken:d.token}:{});
-  if(expectedEpoch!==authEpoch)return;if(!saved)throw Error('storage_error');device=d;
+  if(expectedEpoch!==authEpoch)return false;if(!saved)throw Error('storage_error');
+  const latest=credentials.readPrimary();if(latest&&latest.token!==d.token){connectionNote='別の画面で登録が更新されました。この画面を開き直してください。';return false;}
+  device=d;return true;
  }
  function revoke(){const token=device&&device.token;device=null;if(token)void credentials.revoke(token);try{const pending=parse(pendingKey);if(pending&&pending.token===token)localStorage.removeItem(pendingKey);}catch(_){}lock('この端末の登録が解除されました。新しいコードで登録してください。');}
  async function rpc(op,data={},token=device&&device.token){
@@ -2716,13 +2750,13 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
  }
  function lock(note){
   locked=true;document.documentElement.classList.add('suite-locked');panel.hidden=false;settings.open=false;settingsBody.replaceChildren();card.replaceChildren(text('h1',cfg.name),text('p','はじめに、この端末を登録します。次回からはそのまま開けます。'));
-  card.append(text('p','登録情報が残っている同じSafariでは、次回からコードなしで開きます。ホーム画面アプリ・別のSafariプロファイル・プライベートブラウズは別の保存領域になるため、初回はそれぞれ登録が必要です。'));
+  card.append(text('p','登録情報が残っている同じSafariでは、次回からコードなしで開きます。iOS/iPadOS 17.2以降では、登録したSafariでこのページを更新してからホーム画面に追加すると、登録を引き継げます。追加済みのアイコンには後から反映されません。別のプロファイル・プライベートブラウズでは初回の登録が必要です。'));
   const form=document.createElement('form');const nameLabel=text('label','この端末の名前');const name=document.createElement('input');name.name='deviceName';name.autocomplete='off';name.value='自分の端末';name.maxLength=60;nameLabel.append(name);
   const codeLabel=text('label','登録コード');const code=document.createElement('input');code.name='registrationCode';code.autocomplete='off';code.autocapitalize='none';code.spellcheck=false;code.required=true;codeLabel.append(code);
   const submit=text('button','この端末で使う');submit.type='submit';const status=text('p',note||'登録済みの管理端末から、登録コードを発行してください。');status.setAttribute('role','status');form.append(nameLabel,codeLabel,submit,status);card.append(form);
   form.onsubmit=async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;const registrationEpoch=++authEpoch;try{
    let p=parse(pendingKey);if(!valid(p)||p.code!==code.value.trim()){const bytes=crypto.getRandomValues(new Uint8Array(32));const token=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');p={token,code:code.value.trim(),name:name.value.trim()};try{localStorage.setItem(pendingKey,JSON.stringify(p));}catch(_){throw Error('storage_error');}}
-   const result=await rpc('register',{code:p.code,name:p.name},p.token);await save({token:p.token,manager:result.manager===true},registrationEpoch);if(registrationEpoch!==authEpoch)return;localStorage.removeItem(pendingKey);requestPersistence();open();
+   const result=await rpc('register',{code:p.code,name:p.name},p.token);const registered=await save({token:p.token,manager:result.manager===true},registrationEpoch);if(registrationEpoch!==authEpoch)return;if(!registered)throw Error('storage_error');localStorage.removeItem(pendingKey);requestPersistence();open();
   }catch(err){status.textContent=message(err);}finally{submit.disabled=false;}};
  }
  function check(){
@@ -2731,9 +2765,51 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
   checkingPromise=(async()=>{try{const r=await rpc('check',{},checking);if(epoch!==authEpoch||!device||device.token!==checking)return;await save(Object.assign({},device,{manager:r.manager===true}),epoch,true);if(epoch===authEpoch&&(!credentials.readPrimary()||credentials.readPrimary().token===checking))connectionNote='';}catch(err){if(epoch===authEpoch&&device)connectionNote=message(err);}})().finally(()=>{checkingPromise=null;});
   return checkingPromise;
  }
+ let transferChecking=false;
+ function showTransferStatus(note,busy=false){
+  locked=true;document.documentElement.classList.add('suite-locked');panel.hidden=false;
+  card.replaceChildren(text('h1',cfg.name),text('p','Safariからの登録を確認しています。確認できると、コードを入れ直さずに使えます。'));
+  const status=text('p',note);status.setAttribute('role','status');card.append(status);
+  const retry=button('もう一度確認',()=>{void checkTransfer();});retry.disabled=busy;card.append(retry);
+ }
+ async function checkTransfer(){
+  if(transferChecking)return;transferChecking=true;
+  const epoch=++authEpoch;
+  try{
+   const existing=await credentials.restore();
+   if(epoch!==authEpoch)return;
+   if(valid(existing)){device=existing;requestPersistence();open();void check();return;}
+   const transfer=credentials.readTransfer();
+   if(!transfer){lock('引き継ぎ用の情報が見つかりません。登録したSafariでこのページを更新し、ホーム画面へ新しく追加してください。');return;}
+   showTransferStatus('登録を確認中です。通信が終わるまでお待ちください。',true);
+   try{
+    const result=await rpc('check',{},transfer.token);
+    if(epoch!==authEpoch)return;
+    const current=credentials.readPrimary(),latest=credentials.readTransfer();
+    if((current&&current.token!==transfer.token)||!latest||latest.token!==transfer.token){showTransferStatus('別の画面で登録情報が更新されました。もう一度確認してください。');return;}
+    const saved=await save({token:transfer.token,manager:result.manager===true},epoch,true);
+    if(epoch!==authEpoch)return;
+    const savedTransfer=credentials.readTransfer();
+    if(!saved||device?.token!==transfer.token||(savedTransfer&&savedTransfer.token!==transfer.token)){device=null;showTransferStatus('別の画面で登録情報が更新されました。もう一度確認してください。');return;}
+    requestPersistence();open();
+   }catch(err){
+    if(epoch!==authEpoch)return;
+    if(err.message==='device_revoked'){
+     await credentials.revoke(transfer.token);
+     if(epoch!==authEpoch)return;
+     if(credentials.readPrimary()||credentials.readTransfer()){showTransferStatus('登録情報が更新されました。もう一度確認してください。');return;}
+     lock('Safariから引き継いだ登録は解除されています。新しいコードで登録してください。');return;
+    }
+    showTransferStatus(err.message==='storage_error'?'登録は確認できましたが、この端末に保存できませんでした。保存領域を確認して、もう一度お試しください。':'登録をまだ確認できません。引き継ぎ用の情報は残しています。インターネット接続を確認して、もう一度お試しください。');
+   }
+  }finally{transferChecking=false;}
+ }
  async function renderManagement(){
   const card=settingsBody;card.replaceChildren();
-  card.append(text('p','このSafari／ブラウザーは登録済みです。次回からコードなしで開き、登録情報の一部が失われた場合は端末内に残る控えから復元します。日数によるログインし直しはありません。ブラウザーの保存データをすべて消した場合や、別のプロファイル・ホーム画面アプリでは初回の登録が必要です。'));
+  card.append(text('p','このSafari／ブラウザーは登録済みです。次回からコードなしで開き、登録情報の一部が失われた場合は端末内に残る控えから復元します。日数によるログインし直しはありません。保存データをすべて消した場合や、別のプロファイルでは初回の登録が必要です。'));
+  const transferReady=device&&credentials.readTransfer()?.token===device.token;
+  card.append(text('p',transferReady?'ホーム画面への引き継ぎ準備ができています。iOS/iPadOS 17.2以降では、登録したSafariでこのページを更新し、24時間以内に共有メニューからホーム画面へ追加し、新しいアイコンを一度開いてください。初回は通信して登録を確認します。':'ホーム画面へ引き継ぐ準備をまだ確認できません。Safariでこのページを更新してから、もう一度お試しください。'));
+  card.append(text('p','追加済みのアイコンには後から登録が反映されません。新しく追加したアイコンで使えることを確認するまで、以前のアイコンは残してください。Safariと引き継いだアプリは同じ登録を使うため、端末管理でこの登録を解除すると両方とも解除されます。24時間は追加の準備期間で、登録自体の有効期限ではありません。'));
   if(connectionNote)card.append(text('p',connectionNote));
   if(!device.manager){
    card.append(text('p','この携帯から登録コードを発行するには、管理用コードで登録し直してください。保存済みのデータは消しません。'));
@@ -2761,8 +2837,9 @@ function createSuiteCredentialStore({key,storage,indexedDB}){
   device=await credentials.restore();
   if(!device)device=await credentials.restore(); // 別タブで登録が更新された場合は最新の保存内容を一度読み直す。
   if(valid(device)){requestPersistence();open();void check();return;}
+  if(credentials.readTransfer()){await checkTransfer();return;}
   device=null;lock();const p=parse(pendingKey);
-  if(valid(p)){const pendingEpoch=++authEpoch;try{const r=await rpc('register',{code:p.code,name:p.name},p.token);await save({token:p.token,manager:r.manager===true},pendingEpoch);if(pendingEpoch!==authEpoch)return;localStorage.removeItem(pendingKey);requestPersistence();open();}catch(_){}}
+  if(valid(p)){const pendingEpoch=++authEpoch;try{const r=await rpc('register',{code:p.code,name:p.name},p.token);const recovered=await save({token:p.token,manager:r.manager===true},pendingEpoch);if(pendingEpoch!==authEpoch)return;if(!recovered)throw Error('storage_error');localStorage.removeItem(pendingKey);requestPersistence();open();}catch(_){}}
  })().catch(()=>{device=null;lock('登録情報を確認できませんでした。保存領域を確認して再度開いてください。');});
  window.addEventListener('online',()=>{if(device)void check();});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&device)void check();});
 })();
