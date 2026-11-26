@@ -324,7 +324,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.9.1</span>
+  <span class="ver">Ver.3.9.2</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -358,7 +358,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-settings" class="hidden"></section>
 </main>
 <div class="undo-notice" id="recordUndoNotice" hidden><span id="recordUndoMessage" role="status" aria-live="polite"></span><button type="button" class="btn" id="recordUndoButton">元に戻す</button></div>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.1 · アプリ更新 <time datetime="2026-11-26T08:28:59.894Z">2026/11/26 17:28（日本時間）</time></span></footer>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.2 · アプリ更新 <time datetime="2026-11-26T08:59:50.593Z">2026/11/26 17:59（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -2571,13 +2571,103 @@ void refreshSyncStatus();
 appTabPrefs.boot();
 </script>
 <script>window.SuiteDeviceConfig={app:"kakei",name:"Ledgers OS",settingsTarget:"#tab-settings",url:"https://script.google.com/macros/s/AKfycbwTcUYjxaPWYabs6rBR4tBZvr09aImo0xGst7nTptujEUA6JgxAfjtWZfpTomA2KAS3/exec",readUrl(){return (JSON.parse(localStorage.getItem("kakeiOS")||'{}').settings?.gasUrl);},ensureUrl(url){const s=JSON.parse(localStorage.getItem("kakeiOS")||'{}');s.settings=s.settings||{};if(!s.settings.gasUrl)s.settings.gasUrl=url;localStorage.setItem("kakeiOS",JSON.stringify(s));}};
+/* ---------- 端末資格の保持 ---------- */
+function createSuiteCredentialStore({key,storage,indexedDB}){
+ const revokedKey=key+':revoked',dbName='ledgers-device-credentials-v1';
+ let revision=0,queue=Promise.resolve(),memoryRevoked=new Set(),databaseUnavailable=false;
+ const valid=d=>!!d&&typeof d==='object'&&!Array.isArray(d)&&typeof d.token==='string'&&/^[A-Za-z0-9_-]{43}$/.test(d.token);
+ const clean=d=>({token:d.token,manager:d.manager===true});
+ function readJson(k){try{return JSON.parse(storage.getItem(k)||'null');}catch(_){return null;}}
+ function revoked(){const saved=readJson(revokedKey);return new Set([...memoryRevoked,...(Array.isArray(saved)?saved.filter(t=>typeof t==='string'&&/^[A-Za-z0-9_-]{43}$/.test(t)):[])]);}
+ function rememberRevoked(tokens){memoryRevoked=new Set([...revoked(),...tokens.filter(t=>typeof t==='string'&&/^[A-Za-z0-9_-]{43}$/.test(t))]);try{storage.setItem(revokedKey,JSON.stringify([...memoryRevoked]));}catch(_){}}
+ function readPrimary(){const d=readJson(key);return valid(d)&&!revoked().has(d.token)?clean(d):null;}
+ function removePrimary(token){const d=readJson(key);if(!d||d.token===token){try{storage.removeItem(key);}catch(_){try{storage.setItem(key,'null');}catch(_){}}}}
+ function database(mode,value){
+  return new Promise(resolve=>{
+   let done=false,db=null,tx=null;
+   const finish=result=>{if(done)return;done=true;clearTimeout(timer);if(db)db.close();resolve(result);};
+   const timer=setTimeout(()=>{databaseUnavailable=true;if(tx)try{tx.abort();}catch(_){}finish({ok:false});},1200);
+   try{
+    if(!indexedDB||databaseUnavailable){finish({ok:false});return;}
+    const request=indexedDB.open(dbName,1);
+    request.onupgradeneeded=()=>{if(!request.result.objectStoreNames.contains('credentials'))request.result.createObjectStore('credentials');};
+    request.onerror=request.onblocked=()=>{databaseUnavailable=true;finish({ok:false});};
+    request.onsuccess=()=>{
+     db=request.result;if(done){db.close();return;}
+     try{
+      tx=db.transaction('credentials',mode==='read'?'readonly':'readwrite');
+      const objectStore=tx.objectStore('credentials'),operation=objectStore.get(key);
+      let result;
+      operation.onsuccess=()=>{
+       if(mode==='read'){result=operation.result;return;}
+       try{
+        const next=value(operation.result);result=false;
+        if(next!==null){const write=objectStore.put(next,key);write.onsuccess=()=>{result=true;};write.onerror=()=>{try{tx.abort();}catch(_){}finish({ok:false});};}
+       }catch(_){try{tx.abort();}catch(_){}finish({ok:false});}
+      };
+      operation.onerror=()=>{try{tx.abort();}catch(_){}finish({ok:false});};
+      tx.oncomplete=()=>finish({ok:true,value:result});tx.onerror=tx.onabort=()=>finish({ok:false});
+     }catch(_){finish({ok:false});}
+    };
+   }catch(_){databaseUnavailable=true;finish({ok:false});}
+  });
+ }
+ const enqueue=fn=>{const next=queue.then(fn,fn);queue=next.catch(()=>{});return next;};
+ function record(result){const r=result.ok&&result.value;return r&&r.v===1&&Array.isArray(r.revokedTokens)?r:{v:1,credential:null,revokedTokens:[]};}
+ async function save(d,guards={}){
+  if(!valid(d)||revoked().has(d.token))return false;
+  if(Object.hasOwn(guards,'expectedPrimaryToken')&&(readPrimary()?.token||null)!==guards.expectedPrimaryToken)return false;
+  const copy=clean(d),generation=++revision,primaryBeforeWrite=readPrimary();
+  let primarySaved=false,replacedTokens=[];try{storage.setItem(key,JSON.stringify(copy));const check=readPrimary();primarySaved=!!check&&check.token===copy.token;}catch(_){}
+  const backupSaved=await enqueue(async()=>{
+   const result=await database('write',raw=>{
+    const old=record({ok:true,value:raw});rememberRevoked(old.revokedTokens);
+    if(generation!==revision)return null;
+    if(revoked().has(copy.token)){removePrimary(copy.token);return null;}
+    const oldToken=valid(old.credential)?old.credential.token:null;
+    if(Object.hasOwn(guards,'expectedBackupToken')&&oldToken&&oldToken!==guards.expectedBackupToken){revision++;removePrimary(copy.token);return null;}
+    const currentPrimary=readPrimary();
+    const replacingUnwritablePrimary=!Object.hasOwn(guards,'expectedPrimaryToken')&&!primarySaved&&currentPrimary?.token===primaryBeforeWrite?.token;
+    if(currentPrimary&&currentPrimary.token!==copy.token&&!replacingUnwritablePrimary){revision++;return null;}
+    // 新しく登録し直した資格を優先し、書込み不能だった古い控えへ戻さない。
+    replacedTokens=[oldToken,primaryBeforeWrite?.token].filter(t=>t&&t!==copy.token);
+    return {v:1,credential:copy,revokedTokens:[...new Set([...revoked(),...replacedTokens])]};
+   });
+   return result.ok&&result.value===true;
+  });
+  if(primarySaved||backupSaved)rememberRevoked(replacedTokens);
+  if(backupSaved&&primaryBeforeWrite&&primaryBeforeWrite.token!==copy.token)removePrimary(primaryBeforeWrite.token);
+  return generation===revision&&!revoked().has(copy.token)&&(primarySaved||backupSaved);
+ }
+ async function restore(){
+  const generation=revision,primary=readPrimary();
+  const backup=record(await enqueue(()=>database('read')));rememberRevoked(backup.revokedTokens);
+  if(generation!==revision)return null;
+  const candidate=primary&&!revoked().has(primary.token)?primary:valid(backup.credential)&&!revoked().has(backup.credential.token)?clean(backup.credential):null;
+  if(primary&&revoked().has(primary.token))removePrimary(primary.token);
+  if(candidate){await save(candidate,{expectedPrimaryToken:primary&&!revoked().has(primary.token)?primary.token:null,expectedBackupToken:valid(backup.credential)?backup.credential.token:null});if(generation+1!==revision||revoked().has(candidate.token))return null;const currentPrimary=readPrimary();if(currentPrimary&&currentPrimary.token!==candidate.token)return null;}
+  return candidate;
+ }
+ async function revoke(token){
+  if(typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))return;
+  revision++;rememberRevoked([token]);removePrimary(token);
+  await enqueue(()=>database('write',raw=>{
+   const old=record({ok:true,value:raw});rememberRevoked(old.revokedTokens);
+   const credential=valid(old.credential)&&!revoked().has(old.credential.token)?clean(old.credential):null;
+   return {v:1,credential,revokedTokens:[...revoked()]};
+  }));
+ }
+ return {readPrimary,restore,save,revoke};
+}
 /* 端末ごとの登録。通常起動はネットワークを待たず、明示失効だけで再登録する。 */
 (function(){
  'use strict';
  const cfg=window.SuiteDeviceConfig,key='suite-device-v1:'+cfg.app,pendingKey=key+':pending';
- const nativeFetch=window.fetch.bind(window);let device=null,started=false,locked=true;
+ const nativeFetch=window.fetch.bind(window);let device=null,started=false,locked=true,authEpoch=0,checkingPromise=null;
  const parse=k=>{try{return JSON.parse(localStorage.getItem(k)||'null');}catch(_){return null;}};
  const valid=d=>d&&/^[A-Za-z0-9_-]{43}$/.test(d.token||'');
+ const credentials=createSuiteCredentialStore({key,storage:{getItem:k=>localStorage.getItem(k),setItem:(k,v)=>localStorage.setItem(k,v),removeItem:k=>localStorage.removeItem(k)},indexedDB:window.indexedDB});
+ function requestPersistence(){try{const p=navigator.storage&&navigator.storage.persist;if(p)Promise.resolve(p.call(navigator.storage)).catch(()=>{});}catch(_){}}
  const css=document.createElement('style');css.textContent='html.suite-locked body>*:not(#suite-access){visibility:hidden!important}#suite-access{visibility:visible!important;font:16px/1.7 system-ui,sans-serif;color:#253b3a}#suite-access[hidden]{display:none!important}#suite-access .suite-card{background:#fff;border:1px solid #d9e6e2;border-radius:24px;padding:28px;max-width:460px;margin:8vh auto;box-shadow:0 16px 60px #183c3420}#suite-access input{box-sizing:border-box;width:100%;padding:12px;border:1px solid #b9cfca;border-radius:10px;margin:6px 0 16px;font:inherit}#suite-access button{font:inherit;padding:10px 16px;border:0;border-radius:12px;background:#326f63;color:white;cursor:pointer;margin:4px}#suite-access p{white-space:pre-wrap}#suite-access code{overflow-wrap:anywhere}#suite-access{position:fixed;inset:0;z-index:2147483647;background:#f1f6f3ee;overflow:auto;padding:12px}#suite-device-settings{position:static;margin:20px 0;padding:16px 0;border-top:1px solid var(--line,#d9e6e2);color:inherit;font:inherit}#suite-device-settings summary{cursor:pointer;font-weight:600;padding:8px 0;min-height:24px}#suite-device-settings p{font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}#suite-device-settings button{font:inherit;font-size:13px;white-space:normal;max-width:100%;padding:10px 14px;margin:6px 8px 6px 0;border:1px solid var(--line,#ccdcd5);border-radius:10px;background:transparent;color:inherit;cursor:pointer}';document.head.append(css);
  const panel=document.createElement('section');panel.id='suite-access';panel.setAttribute('aria-label','端末登録');
  const card=document.createElement('div');card.className='suite-card';panel.append(card);document.body.append(panel);
@@ -2594,8 +2684,14 @@ appTabPrefs.boot();
  function endpoint(raw){const u=new URL(raw);if(u.protocol!=='https:'||u.hostname!=='script.google.com'||!/^\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(u.pathname))throw Error('invalid_endpoint');return u;}
  function readEndpoint(){let u=cfg.url;try{u=cfg.readUrl()||u;}catch(_){}return endpoint(u);}
  let apiUrl;try{apiUrl=readEndpoint();}catch(_){apiUrl=endpoint(cfg.url);}
- function save(d){try{localStorage.setItem(key,JSON.stringify(d));}catch(_){throw Error('storage_error');}device=d;}
- function revoke(){device=null;localStorage.removeItem(key);lock('この端末の登録が解除されました。新しいコードで登録してください。');}
+ async function save(d,expectedEpoch=authEpoch,refresh=false){
+  if(expectedEpoch!==authEpoch)return;
+  const current=credentials.readPrimary();
+  if(refresh&&current&&current.token!==d.token){connectionNote='別の画面で登録が更新されました。この画面を開き直してください。';return;}
+  const saved=await credentials.save(d,refresh?{expectedPrimaryToken:current?.token||null,expectedBackupToken:d.token}:{});
+  if(expectedEpoch!==authEpoch)return;if(!saved)throw Error('storage_error');device=d;
+ }
+ function revoke(){const token=device&&device.token;device=null;if(token)void credentials.revoke(token);try{const pending=parse(pendingKey);if(pending&&pending.token===token)localStorage.removeItem(pendingKey);}catch(_){}lock('この端末の登録が解除されました。新しいコードで登録してください。');}
  async function rpc(op,data={},token=device&&device.token){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
   try{const r=await nativeFetch(apiUrl.origin+apiUrl.pathname,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},credentials:'omit',referrerPolicy:'no-referrer',redirect:'follow',body:JSON.stringify(Object.assign({},data,{suite:1,op,token})),signal:controller.signal});
@@ -2616,23 +2712,28 @@ appTabPrefs.boot();
  };
  function open(){
   locked=false;document.documentElement.classList.remove('suite-locked');panel.hidden=true;
-  if(!started){started=true;cfg.ensureUrl(apiUrl.href);const original=document.getElementById('suite-original-app');const script=document.createElement('script');script.textContent=original.textContent;document.body.append(script);mountSettings();new MutationObserver(mountSettings).observe(document.body,{childList:true,subtree:true});}
+  if(!started){started=true;try{cfg.ensureUrl(apiUrl.href);}catch(_){connectionNote='この端末の保存領域を利用できません。保存状況を確認してください。';}const original=document.getElementById('suite-original-app');const script=document.createElement('script');script.textContent=original.textContent;document.body.append(script);mountSettings();new MutationObserver(mountSettings).observe(document.body,{childList:true,subtree:true});}
  }
  function lock(note){
   locked=true;document.documentElement.classList.add('suite-locked');panel.hidden=false;settings.open=false;settingsBody.replaceChildren();card.replaceChildren(text('h1',cfg.name),text('p','はじめに、この端末を登録します。次回からはそのまま開けます。'));
-  card.append(text('p','ホーム画面に追加して使う場合は、そのアプリを開いた状態で登録してください。Safariとは別の登録になる場合があります。'));
+  card.append(text('p','登録情報が残っている同じSafariでは、次回からコードなしで開きます。ホーム画面アプリ・別のSafariプロファイル・プライベートブラウズは別の保存領域になるため、初回はそれぞれ登録が必要です。'));
   const form=document.createElement('form');const nameLabel=text('label','この端末の名前');const name=document.createElement('input');name.name='deviceName';name.autocomplete='off';name.value='自分の端末';name.maxLength=60;nameLabel.append(name);
   const codeLabel=text('label','登録コード');const code=document.createElement('input');code.name='registrationCode';code.autocomplete='off';code.autocapitalize='none';code.spellcheck=false;code.required=true;codeLabel.append(code);
   const submit=text('button','この端末で使う');submit.type='submit';const status=text('p',note||'登録済みの管理端末から、登録コードを発行してください。');status.setAttribute('role','status');form.append(nameLabel,codeLabel,submit,status);card.append(form);
-  form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;try{
+  form.onsubmit=async e=>{e.preventDefault();if(submit.disabled)return;submit.disabled=true;const registrationEpoch=++authEpoch;try{
    let p=parse(pendingKey);if(!valid(p)||p.code!==code.value.trim()){const bytes=crypto.getRandomValues(new Uint8Array(32));const token=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');p={token,code:code.value.trim(),name:name.value.trim()};try{localStorage.setItem(pendingKey,JSON.stringify(p));}catch(_){throw Error('storage_error');}}
-   const result=await rpc('register',{code:p.code,name:p.name},p.token);save({token:p.token,manager:result.manager===true});localStorage.removeItem(pendingKey);open();
+   const result=await rpc('register',{code:p.code,name:p.name},p.token);await save({token:p.token,manager:result.manager===true},registrationEpoch);if(registrationEpoch!==authEpoch)return;localStorage.removeItem(pendingKey);requestPersistence();open();
   }catch(err){status.textContent=message(err);}finally{submit.disabled=false;}};
  }
- async function check(){try{const r=await rpc('check');save(Object.assign({},device,{manager:r.manager===true}));connectionNote='';}catch(err){if(device)connectionNote=message(err);}}
+ function check(){
+  if(checkingPromise||navigator.onLine===false||!device)return checkingPromise;
+  const checking=device.token,epoch=authEpoch;
+  checkingPromise=(async()=>{try{const r=await rpc('check',{},checking);if(epoch!==authEpoch||!device||device.token!==checking)return;await save(Object.assign({},device,{manager:r.manager===true}),epoch,true);if(epoch===authEpoch&&(!credentials.readPrimary()||credentials.readPrimary().token===checking))connectionNote='';}catch(err){if(epoch===authEpoch&&device)connectionNote=message(err);}})().finally(()=>{checkingPromise=null;});
+  return checkingPromise;
+ }
  async function renderManagement(){
   const card=settingsBody;card.replaceChildren();
-  card.append(text('p','この端末は登録済みです。日数によるログインし直しはありません。端末の保存データを消した場合は再登録が必要です。'));
+  card.append(text('p','このSafari／ブラウザーは登録済みです。次回からコードなしで開き、登録情報の一部が失われた場合は端末内に残る控えから復元します。日数によるログインし直しはありません。ブラウザーの保存データをすべて消した場合や、別のプロファイル・ホーム画面アプリでは初回の登録が必要です。'));
   if(connectionNote)card.append(text('p',connectionNote));
   if(!device.manager){
    card.append(text('p','この携帯から登録コードを発行するには、管理用コードで登録し直してください。保存済みのデータは消しません。'));
@@ -2655,8 +2756,14 @@ appTabPrefs.boot();
   const list=document.createElement('div');card.append(list);
   try{const rows=await rpc('devices');for(const d of rows){const row=text('p',d.name+(d.manager?'（管理端末）':''));const remove=button('登録を解除',()=>{remove.textContent='もう一度押すと解除';remove.onclick=async()=>{try{await rpc('revoke',{id:d.id});row.remove();}catch(err){status.textContent=message(err);}};});row.append(remove);list.append(row);}}catch(err){status.textContent=message(err);}
  }
- device=parse(key);if(valid(device)){open();void check();}
- else{device=null;lock();const p=parse(pendingKey);if(valid(p))rpc('register',{code:p.code,name:p.name},p.token).then(r=>{save({token:p.token,manager:r.manager===true});localStorage.removeItem(pendingKey);open();}).catch(()=>{});}
+ card.replaceChildren(text('h1',cfg.name),text('p','このブラウザーの登録情報を確認しています…'));
+ void (async()=>{
+  device=await credentials.restore();
+  if(!device)device=await credentials.restore(); // 別タブで登録が更新された場合は最新の保存内容を一度読み直す。
+  if(valid(device)){requestPersistence();open();void check();return;}
+  device=null;lock();const p=parse(pendingKey);
+  if(valid(p)){const pendingEpoch=++authEpoch;try{const r=await rpc('register',{code:p.code,name:p.name},p.token);await save({token:p.token,manager:r.manager===true},pendingEpoch);if(pendingEpoch!==authEpoch)return;localStorage.removeItem(pendingKey);requestPersistence();open();}catch(_){}}
+ })().catch(()=>{device=null;lock('登録情報を確認できませんでした。保存領域を確認して再度開いてください。');});
  window.addEventListener('online',()=>{if(device)void check();});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&device)void check();});
 })();
 </script>
