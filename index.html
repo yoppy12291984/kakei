@@ -65,6 +65,74 @@ header .ver{font-size:11px; color:var(--faint); letter-spacing:.05em;}
 #syncConflict{flex-basis:100%;border-top:1px solid var(--line);padding-top:10px;font-size:12px;white-space:pre-wrap}
 #syncConflict[hidden]{display:none}
 .app-release{display:block;margin-top:4px;font-size:10.5px;letter-spacing:0}
+.savings-advice{margin-top:16px;overflow-wrap:anywhere}
+.savings-advice .advice-meta{font-size:12px;color:var(--muted);line-height:1.7}
+.savings-advice .advice-summary{font-size:15px;line-height:1.8;margin:14px 0}
+.savings-advice .advice-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:12px}
+.savings-advice .advice-item{border:1px solid var(--line);border-radius:12px;padding:16px;line-height:1.7;min-width:0}
+.savings-advice h3{font-size:15px;margin:0 0 8px}
+.savings-advice .advice-amount{font-size:13px;font-weight:700;margin:8px 0}
+.savings-advice .advice-scenario{border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:12px;color:var(--muted)}
+.savings-advice select{min-height:44px;max-width:100%;font-size:16px}
+.savings-advice details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font-size:13px}
+#tab-dash .dash-period{padding:14px 16px}
+#tab-dash .dash-month-nav{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center}
+#tab-dash .dash-month-nav .btn{width:44px;min-height:44px;padding:0}
+#tab-dash .dash-month-title{text-align:center;min-width:0;font-size:17px;line-height:1.6}
+#tab-dash .dash-period-range{font-size:12px;text-align:center;color:var(--sub);margin-top:6px}
+#tab-dash .dash-period-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+#tab-dash .dash-period-meta .btn{min-height:44px}
+#tab-dash .dash-period-note{font-size:12px;color:var(--sub);margin-top:8px;overflow-wrap:anywhere}
+#tab-dash .dash-period-note.warntext{color:var(--warn)}
+#tab-dash .dash-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+#tab-dash .dash-summary-grid>.card{min-width:0}
+#tab-dash .dash-balance td.r{white-space:nowrap}
+#tab-dash .dash-todo-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+#tab-dash .dash-todo-heading h2{margin:0}
+#tab-dash .dash-todo-heading .btn{min-height:44px}
+#tab-dash .dash-todo-list{list-style:none;margin-top:10px}
+#tab-dash .dash-todo-list li{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+#tab-dash .dash-todo-list .dash-todo-text{min-width:0;overflow-wrap:anywhere}
+#tab-dash .dash-todo-list time{flex-shrink:0;font-size:12px;color:var(--sub)}
+#tab-dash .dash-disclosure{border:1px solid var(--line);border-radius:var(--radius);background:var(--card);margin-bottom:16px;overflow:hidden}
+#tab-dash .dash-disclosure>summary{min-height:48px;cursor:pointer;padding:14px 16px;font-size:14px;font-weight:700;line-height:1.6}
+#tab-dash .dash-disclosure>summary:focus-visible{outline:2px solid var(--gold);outline-offset:-3px}
+#tab-dash .dash-disclosure>summary .muted{font-size:11.5px;font-weight:400;margin-left:8px}
+#tab-dash .dash-details-body{padding:0 12px 12px}
+#tab-dash .dash-details-body>.card:last-child{margin-bottom:0}
+#tab-dash .card h2 .hint{display:block;margin:4px 0 0;line-height:1.6}
+#tab-dash .legend{flex-wrap:wrap;gap:8px 14px}
+#tab-dash .drill:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+@media(max-width:700px){#tab-dash .dash-summary-grid{grid-template-columns:minmax(0,1fr);gap:0}}
+@media(max-width:480px){
+  #tab-dash .card{padding:16px 14px}
+  #tab-dash .dash-period{padding:12px}
+  #tab-dash .dash-month-title{font-size:16px}
+  #tab-dash .dash-summary-grid .bignum small{display:block}
+  #tab-dash .dash-details-body{padding:0 8px 8px}
+  #tab-dash .dash-todo-list li{flex-wrap:wrap;gap:4px 10px}
+}
+.record-editor{width:min(92vw,480px);max-height:88dvh;margin:auto;padding:24px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);box-shadow:var(--shadow);overflow:auto}
+.record-editor::backdrop{background:rgba(0,0,0,.4)}
+.record-editor h2{font-size:17px;margin-bottom:18px}
+.record-editor label{display:grid;gap:6px;margin-bottom:14px;font-size:13px}
+.record-editor input,.record-editor select{width:100%;font-size:16px;min-height:44px}
+.record-editor .editor-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.record-editor button,.record-actions button{min-height:44px}
+.record-editor-error{color:var(--warn);font-size:13px;white-space:pre-wrap}
+.undo-notice{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:1000;display:flex;align-items:center;gap:12px;width:max-content;max-width:calc(100vw - 24px);padding:12px 16px;border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:0 4px 24px #0002;font-size:13px}
+.undo-notice[hidden]{display:none}
+.undo-notice button{min-height:44px;white-space:nowrap}
+.income-table .record-actions,.todo-table .record-actions{white-space:nowrap}
+@media(max-width:700px){
+ .income-table thead{display:none}.income-table,.income-table tbody{display:block}
+ .income-table tr{display:grid;grid-template-columns:1fr auto;gap:6px;padding:12px 0;border-bottom:1px solid var(--line)}
+ .income-table td{border:0;padding:0;min-width:0}.income-table .income-label{grid-column:1/-1;grid-row:1;overflow-wrap:anywhere;font-weight:500}
+ .income-table .record-actions{grid-column:1/-1;text-align:right}
+ .todo-table,.todo-table tbody{display:block}.todo-table tr{display:grid;grid-template-columns:28px 1fr;gap:4px 8px;padding:10px 0;border-bottom:1px solid var(--line)}
+ .todo-table td{border:0;padding:0;min-width:0;overflow-wrap:anywhere}.todo-table .todo-due,.todo-table .record-actions{grid-column:2;text-align:left}
+ .todo-table input[type=checkbox]{width:22px;height:22px;margin-top:3px}
+}
 
 nav{display:flex; gap:4px; background:var(--card); border-bottom:1px solid var(--line); padding:6px 12px 0; overflow-x:auto;}
 nav button{border:none; background:none; padding:9px 15px 11px; font-size:13.5px; font-family:inherit; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; letter-spacing:.04em; transition:color .15s;}
@@ -143,7 +211,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 .warntext{color:var(--warn);}
 .oktext{color:var(--ok);}
 
-/* ---------- 明細テーブル：スマホ表示崩れ対策 ---------- */
+/* ---------- 明細一覧 ---------- */
 .tx-scroll{
   overflow-x:auto;
   -webkit-overflow-scrolling:touch;
@@ -171,15 +239,39 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
 .tx-table .tx-actions{
   width:170px;
 }
+.tx-tools{display:grid;grid-template-columns:minmax(160px,2fr) minmax(120px,1fr) minmax(120px,1fr);gap:10px;margin:14px 0;}
+.tx-tools label,.tx-manual label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--sub);min-width:0;}
+.tx-tools input,.tx-tools select,.tx-manual input,.tx-manual select{width:100%;min-height:44px;}
+.tx-tools input[type=search]{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+.tx-summary{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin-bottom:12px;}
+.tx-summary strong{font-size:14px;}
+.tx-disclosure>summary{cursor:pointer;font-size:14px;font-weight:700;min-height:44px;display:list-item;align-content:center;line-height:1.7;}
+.tx-disclosure[open]>summary{margin-bottom:14px;}
+.tx-manual{margin-top:16px;padding-top:10px;border-top:1px solid var(--line);}
+.tx-manual .row>label{flex:1 1 140px;}
+.tx-bulk{margin-top:18px;font-size:12px;color:var(--sub);}
+.tx-bulk>summary{cursor:pointer;min-height:44px;align-content:center;}
+.tx-table .txcat{min-height:40px;}
+.tx-table .tx-actions button{min-height:40px;}
+.tx-source{display:inline-block;margin-right:5px;}
 @media(max-width:700px){
-  .tx-table{
-    min-width:700px;
-    font-size:13px;
-  }
-  .tx-table .tx-merchant{
-    width:220px;
-    max-width:220px;
-  }
+  #tab-tx>.card{padding:16px;}
+  .tx-tools{grid-template-columns:minmax(0,1fr) minmax(0,1fr);}
+  .tx-tools .tx-search-label{grid-column:1/-1;}
+  .tx-scroll{overflow:visible;}
+  .tx-table,.tx-table tbody{display:block;width:100%;min-width:0;}
+  .tx-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+  .tx-table tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .tx-table tr:last-child{border-bottom:0;}
+  .tx-table td{display:block;padding:0;border:0;min-width:0;white-space:normal;}
+  .tx-table .tx-date{grid-column:1;grid-row:1;color:var(--sub);font-size:12px;}
+  .tx-table .tx-merchant{grid-column:1/-1;grid-row:2;width:auto;max-width:none;overflow:visible;overflow-wrap:anywhere;font-size:15px;}
+  .tx-table .tx-amount{grid-column:2;grid-row:1;width:auto;font-size:16px;font-weight:500;white-space:nowrap;}
+  .tx-table .tx-category{grid-column:1/-1;grid-row:3;width:auto;margin-top:3px;}
+  .tx-table .txcat{width:100%;min-height:44px;font-size:16px;}
+  .tx-table .tx-actions{grid-column:1/-1;grid-row:4;width:auto;display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+  .tx-table .tx-actions button{min-height:44px;flex:1;font-size:13px;}
+  .tx-manual input,.tx-manual select{font-size:16px;}
 }
 
 /* ---------- 月次推移：1月から横スワイプ ---------- */
@@ -232,7 +324,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.8.10</span>
+  <span class="ver">Ver.3.9.0</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -265,7 +357,8 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-todo" class="hidden"></section>
   <section id="tab-settings" class="hidden"></section>
 </main>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.8.10 · アプリ更新 <time datetime="2026-11-26T07:50:42.000Z">2026/11/26 16:50（日本時間）</time></span></footer>
+<div class="undo-notice" id="recordUndoNotice" hidden><span id="recordUndoMessage" role="status" aria-live="polite"></span><button type="button" class="btn" id="recordUndoButton">元に戻す</button></div>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.0 · アプリ更新 <time datetime="2026-11-26T08:17:43.869Z">2026/11/26 17:17（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -480,6 +573,109 @@ function categorize(merchant){
 }
 function esc(s){ return String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* ---------- 編集フォームと直前の削除の取り消し ---------- */
+let recordUndo = null, recordUndoTimer = null;
+function clearRecordUndo(){
+  if(recordUndoTimer!==null) clearTimeout(recordUndoTimer);
+  recordUndoTimer=null; recordUndo=null;
+  const notice=document.getElementById('recordUndoNotice'); if(notice) notice.hidden=true;
+}
+function rollbackUpdatedAt(value){
+  if(value===undefined) delete state.updatedAt; else state.updatedAt=value;
+  renderDataStatus();
+}
+function deleteRecordWithUndo(collection,id,label,tab){
+  const list=state[collection]; if(!Array.isArray(list)) return false;
+  const index=list.findIndex(row=>row.id===id); if(index<0) return false;
+  const row=JSON.parse(JSON.stringify(list[index]));
+  const originalUpdatedAt=state.updatedAt, originalSkips=state.recurringSkips;
+  const skipKey=collection==='transactions' && row.src==='recurring' ? row.recurringKey : null;
+  const addedSkip=!!skipKey && !(state.recurringSkips||[]).includes(skipKey);
+  if(addedSkip) state.recurringSkips=[...(state.recurringSkips||[]),skipKey];
+  state[collection]=list.filter((_,i)=>i!==index);
+  if(!persist()){
+    state[collection]=list; state.recurringSkips=originalSkips; rollbackUpdatedAt(originalUpdatedAt);
+    return false;
+  }
+  clearRecordUndo();
+  recordUndo={state,collection,index,row,skipKey,addedSkip,tab};
+  document.getElementById('recordUndoMessage').textContent=label+'を削除しました。直前の1件を30秒間戻せます。';
+  document.getElementById('recordUndoNotice').hidden=false;
+  document.getElementById('recordUndoButton').onclick=undoRecordDeletion;
+  recordUndoTimer=setTimeout(clearRecordUndo,30000);
+  render(tab);
+  return true;
+}
+function undoRecordDeletion(){
+  const entry=recordUndo;
+  if(!entry || entry.state!==state){ clearRecordUndo(); return false; }
+  const list=state[entry.collection];
+  if(!Array.isArray(list) || list.some(row=>row.id===entry.row.id)){ clearRecordUndo(); return false; }
+  const originalUpdatedAt=state.updatedAt, originalSkips=state.recurringSkips;
+  const restored=list.slice(); restored.splice(Math.min(entry.index,list.length),0,entry.row);
+  state[entry.collection]=restored;
+  if(entry.addedSkip) state.recurringSkips=(state.recurringSkips||[]).filter(key=>key!==entry.skipKey);
+  if(!persist()){
+    state[entry.collection]=list; state.recurringSkips=originalSkips; rollbackUpdatedAt(originalUpdatedAt);
+    document.getElementById('recordUndoMessage').textContent='保存できなかったため、まだ元に戻せていません。';
+    return false;
+  }
+  clearRecordUndo(); render(entry.tab); return true;
+}
+function saveRecordPatch(collection,id,patch,tab){
+  const list=state[collection]; if(!Array.isArray(list)) return false;
+  const index=list.findIndex(row=>row.id===id); if(index<0) return false;
+  const originalUpdatedAt=state.updatedAt;
+  state[collection]=list.map((row,i)=>i===index?{...row,...patch,id:row.id}:row);
+  if(!persist()){
+    state[collection]=list; rollbackUpdatedAt(originalUpdatedAt); return false;
+  }
+  render(tab); return true;
+}
+function openRecordEditor({title,fields,onSave}){
+  const existing=document.getElementById('recordEditor');
+  if(existing){ existing.close(); existing.remove(); }
+  const originState=state, returnFocus=document.activeElement;
+  const dialog=document.createElement('dialog'); dialog.id='recordEditor'; dialog.className='record-editor';
+  dialog.setAttribute('aria-labelledby','recordEditorTitle');
+  const form=document.createElement('form');
+  const heading=document.createElement('h2'); heading.id='recordEditorTitle'; heading.textContent=title; form.append(heading);
+  const controls=new Map();
+  fields.forEach(field=>{
+    const label=document.createElement('label'); label.textContent=field.label;
+    const control=document.createElement(field.type==='select'?'select':'input'); control.name=field.name;
+    if(field.type==='select') (field.options||[]).forEach(option=>{
+      const item=document.createElement('option');
+      item.value=typeof option==='string'?option:option.value; item.textContent=typeof option==='string'?option:option.label; control.append(item);
+    }); else control.type=field.type||'text';
+    control.value=String(field.value??''); control.required=!!field.required;
+    if(field.min!==undefined) control.min=String(field.min);
+    if(field.max!==undefined) control.max=String(field.max);
+    if(field.step!==undefined) control.step=String(field.step);
+    if(field.type==='number') control.inputMode='numeric';
+    label.append(control); form.append(label); controls.set(field.name,control);
+  });
+  const error=document.createElement('p'); error.className='record-editor-error'; error.setAttribute('role','alert'); form.append(error);
+  const actions=document.createElement('div'); actions.className='editor-actions';
+  const cancel=document.createElement('button'); cancel.type='button'; cancel.className='btn'; cancel.textContent='キャンセル'; cancel.onclick=()=>dialog.close();
+  const save=document.createElement('button'); save.type='submit'; save.className='btn primary'; save.textContent='保存'; actions.append(cancel,save); form.append(actions);
+  let busy=false;
+  form.onsubmit=async e=>{
+    e.preventDefault(); if(busy || !form.reportValidity()) return;
+    if(state!==originState){ error.textContent='編集を開いた後にデータが読み込まれました。閉じて内容を確認し、もう一度編集してください。'; return; }
+    const values=Object.fromEntries(Array.from(controls,([name,control])=>[name,control.value]));
+    busy=true; save.disabled=true; error.textContent='';
+    try{
+      if(await onSave(values)===false){ error.textContent='変更を保存できませんでした。入力内容と画面上の保存状況を確認してください。'; }
+      else dialog.close();
+    }catch(e){ error.textContent=e.message||'変更を保存できませんでした。'; }
+    finally{ busy=false; save.disabled=false; }
+  };
+  dialog.append(form); document.body.append(dialog);
+  dialog.addEventListener('close',()=>{dialog.remove(); if(returnFocus?.isConnected) returnFocus.focus();},{once:true});
+  dialog.showModal(); controls.values().next().value?.focus();
+}
+
 /* ========== 定期明細(AMEX外の家賃など) ========== */
 function monthKey(d=new Date()){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
@@ -595,6 +791,7 @@ function render(tab){
 let dashCycle = null;
 let dashDetail = null;
 let trendYear = null; // 月次推移で表示する年 // {cat, cycle} カテゴリ明細のドリルダウン表示
+const dashSectionsOpen = {annual:false,analysis:false,fixed:false};
 function defaultDashCycle(){
   // 請求サイクルが締まる(21日)までは、直近の締め済み月をデフォルト表示にする
   const closed = shiftCycle(currentCycle(), -1);
@@ -621,14 +818,25 @@ function shiftCycle(cyc, delta){
   const d = new Date(y, m-1+delta, 1);
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
 }
+function dashPeriodRange(cyc, billingCycle){
+  const [year, month] = cyc.split('-').map(Number);
+  const previous = shiftCycle(cyc,-1);
+  return billingCycle
+    ? {start:previous+'-22',end:cyc+'-21'}
+    : {start:cyc+'-01',end:cyc+'-'+String(new Date(year,month,0).getDate()).padStart(2,'0')};
+}
 function renderDash(){
   const el = document.getElementById('tab-dash');
+  el.querySelectorAll('details[data-dash-section]').forEach(section=>{dashSectionsOpen[section.dataset.dashSection]=section.open;});
   const cyc = dashCycle || defaultDashCycle();
   const isCurrent = cyc === currentCycle();
-  const dlCycle = daysLeftInCycle(cyc);
+  const dlCycle = state.settings.cycleMode ? daysLeftInCycle(cyc) : null;
   if(!state.plans) state.plans = [];
   const planRec = state.plans.filter(p=>!isExcluded(p.category) && cycleOf(p.date)===cyc).reduce((s,p)=>s+p.amount,0);
-  const autoNote = (!dashCycle && !isCurrent) ? '直近の締め済み月を表示中(締め日後にCSV取り込みで更新)' : '';
+  const period = dashPeriodRange(cyc,state.settings.cycleMode);
+  const monthLabel = value=>value.replace('-','年')+'月'+(state.settings.cycleMode?'請求':'');
+  const latestDate = state.transactions.map(t=>t.date).filter(d=>typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().pop();
+  const oldMonthNote = cyc<currentCycle() ? '過去の'+(state.settings.cycleMode?'請求月':'月')+'を表示しています。「今月へ」で切り替えられます。' : '';
   const st = cycleStats(cyc);
   const budget = budgetFor(cyc);
   const budgetOverridden = ovr().monthly[cyc] !== undefined;
@@ -653,7 +861,7 @@ function renderDash(){
     const planPct = Math.min(100-pct, amt>0 ? plan/amt*100 : 0);
     const over = spent > amt;
     return `<div class="mb">
-      <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'今月'}${(isYear?dlYear:dlCycle)!==null?'・残り'+(isYear?dlYear:dlCycle)+'日':''})</span></span>
+      <div class="barnote"><span>${esc(c.name)}${isSacred(c.name)?' <span class="pill seiiki">聖域</span>':''} <span class="muted">(${isYear?year+'年':'表示月'}${(isYear?dlYear:dlCycle)!==null?'・残り'+(isYear?dlYear:dlCycle)+'日':''})</span></span>
       <span class="num ${over?'warntext':''}">${yen(spent)} / ${yen(amt)}</span></div>
       <div class="bar" style="display:flex">
         <div style="width:${pct}%; background:${over?'var(--warn)':(isSacred(c.name)?'var(--seiiki)':'var(--ok)')}"></div>
@@ -728,7 +936,7 @@ function renderDash(){
       .sort((a,b)=>a.date<b.date?-1:1);
     const dsum = dtx.reduce((s,t)=>s+t.amount,0);
     detailCard = `<div class="card" id="detailCard" style="border-color:var(--ai)">
-      <h2>${esc(dashDetail.cat)} の明細 <span class="hint">${isYearDetail ? dashDetail.cycle+'年(年間)' : dashDetail.cycle.replace('-','年')+'月請求'}・${dtx.length}件・合計 ${yen(dsum)}</span>
+      <h2>${esc(dashDetail.cat)} の明細 <span class="hint">${isYearDetail ? dashDetail.cycle+'年(年間)' : monthLabel(dashDetail.cycle)}・${dtx.length}件・合計 ${yen(dsum)}</span>
         <button class="btn small" id="detailClose" style="float:right">閉じる</button></h2>
       ${dtx.length?`<table>
         <tr><th>日付</th><th>店名</th><th class="r">金額</th></tr>
@@ -763,6 +971,43 @@ function renderDash(){
   const fixedRegisteredAmex = activeFixed.filter(f=>f.method==='amex').reduce((s,f)=>s+(f.amount||0),0);
   const fixedRegisteredOther = activeFixed.filter(f=>f.method==='other').reduce((s,f)=>s+(f.amount||0),0);
 
+  const monthlyBalanceCard = `<div class="card dash-balance">
+    <h2>月の総収支 <span class="hint">${monthLabel(cyc)}・登録済みの収入と支出</span></h2>
+    <table>
+      <tr><td>収入(登録分)</td><td class="r num">${monthIncome>0?yen(monthIncome):'<span class="muted">未登録</span>'}</td></tr>
+      <tr><td>明細実績(AMEX＋手動/自動)</td><td class="r num">${yen(st.total)}</td></tr>
+      <tr><td>明細未計上の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
+      ${state.fixed.filter(f=>f.active && f.method==='chisa' && f.amount>0).length?`<tr><td class="muted">パートナー払いの固定費(参考・差額に含めず)</td><td class="r num muted">${yen(state.fixed.filter(f=>f.active && f.method==='chisa').reduce((s,f)=>s+f.amount,0))}</td></tr>`:''}
+      ${state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost && f.amount>0).map(f=>`
+      <tr><td class="muted" style="padding-left:20px; font-size:12.5px">└ ${esc(f.label)}</td><td class="r num muted" style="font-size:12.5px">${yen(f.amount)}</td></tr>`).join('')}
+      <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
+      ${monthIncome>0?`<tr><td><strong>収支差額(投資余力)</strong></td><td class="r num ${monthIncome-st.total-fixedOther>=0?'oktext':'warntext'}"><strong>${yen(monthIncome-st.total-fixedOther)}</strong></td></tr>`:''}
+    </table>
+    ${monthIncome===0?'<p class="muted mt">Incomeタブに給与等を登録すると、収支差額が表示されます。</p>':''}
+    <p class="muted mt" style="font-size:11.5px">未記録の収入・支出は含まれません。</p>
+  </div>`;
+  const undoneTodos = (state.todos||[]).filter(t=>!t.done).sort((a,b)=>{
+    if(!a.due && !b.due) return 0;
+    if(!a.due) return 1;
+    if(!b.due) return -1;
+    return a.due.localeCompare(b.due);
+  });
+  const overdueTodos = undoneTodos.filter(t=>todoStatus(t)==='overdue');
+  const soonTodos = undoneTodos.filter(t=>todoStatus(t)==='soon');
+  const urgentTodos = [...overdueTodos,...soonTodos];
+  const shownTodos = (urgentTodos.length ? urgentTodos : undoneTodos).slice(0,urgentTodos.length?3:1);
+  const todoTabVisible = appTabPrefs.visible().includes('todo');
+  const todoCard = undoneTodos.length ? `<div class="card">
+    <div class="dash-todo-heading">
+      <h2>${urgentTodos.length?'期限を確認するTo do':'次のTo do'} <span class="hint">現在の未完了 ${undoneTodos.length}件${overdueTodos.length?'・期限切れ '+overdueTodos.length+'件':''}${soonTodos.length?'・3日以内 '+soonTodos.length+'件':''}</span></h2>
+      <button class="btn" id="dashTodoOpen">${todoTabVisible?'To doを開く':'To doの表示設定'}</button>
+    </div>
+    <ul class="dash-todo-list">${shownTodos.map(t=>{
+      const status = todoStatus(t);
+      return `<li><span class="dash-todo-text">${status==='overdue'?'<span class="pill warn">期限切れ</span> ':status==='soon'?'<span class="pill seiiki">3日以内</span> ':''}${esc(t.text)}</span>${t.due?`<time class="num" datetime="${esc(t.due)}">${esc(t.due.replace(/-/g,'/'))}まで</time>`:'<span class="muted">期限なし</span>'}</li>`;
+    }).join('')}</ul>
+  </div>` : '';
+
   let chartCols = hist.map(h=>{
     const cst = cycleStats(h.cycle);
     const computed = cst.count > 0;
@@ -785,18 +1030,21 @@ function renderDash(){
   }).join('');
 
   el.innerHTML = `
-  <div class="row mb" style="justify-content:center; align-items:center; gap:14px;">
-    <button class="btn" id="dashPrev">◀</button>
-    <div style="text-align:center">
-      <strong style="font-size:16px" class="num">${cyc.replace('-','年')}月請求</strong>${isCurrent?' <span class="pill ai">今月</span>':''}${cyc>currentCycle()?' <span class="pill seiiki">未来(予定のみ)</span>':''}
-      ${autoNote?`<div class="muted" style="font-size:11px">${autoNote}</div>`:''}
+  <div class="card dash-period">
+    <div class="dash-month-nav" aria-label="表示する月">
+      <button class="btn" id="dashPrev" aria-label="前の月を表示">◀</button>
+      <div class="dash-month-title"><strong class="num">${monthLabel(cyc)}</strong>${isCurrent?' <span class="pill ai">今月</span>':''}${cyc>currentCycle()?' <span class="pill seiiki">未来の月</span>':''}</div>
+      <button class="btn" id="dashNext" aria-label="次の月を表示">▶</button>
     </div>
-    <button class="btn" id="dashNext">▶</button>
-    ${!isCurrent?'<button class="btn small" id="dashToday">今月へ</button>':''}
+    <p class="dash-period-range">対象期間 <time datetime="${period.start}">${period.start.replace(/-/g,'/')}</time> 〜 <time datetime="${period.end}">${period.end.replace(/-/g,'/')}</time></p>
+    <div class="dash-period-meta"><span class="muted">この期間の明細 <strong class="num">${st.count}件</strong></span>${!isCurrent?'<button class="btn small" id="dashToday">今月へ</button>':''}</div>
+    ${oldMonthNote?`<p class="dash-period-note">${oldMonthNote}</p>`:''}
+    ${st.count===0?'<p class="dash-period-note warntext">この期間の明細は未登録です。支出がないことを示すものではありません。</p>':''}
+    <p class="dash-period-note">${latestDate?`登録済み明細の最新利用日 <time datetime="${latestDate}">${latestDate.replace(/-/g,'/')}</time>（${monthLabel(cycleOf(latestDate))}）`:'登録済みの明細はありません。'}<br>手動・自動の明細も含みます。未記録の支出は集計に含まれません。</p>
   </div>
-  <div class="grid2">
+  <div class="grid2 dash-summary-grid">
     <div class="card">
-      <h2>${esc(labelRec())} <span class="hint">請求サイクル(前月22日〜21日)・聖域除く${budgetOverridden?'・個別予算':''}</span></h2>
+      <h2>${esc(labelRec())} <span class="hint">${state.settings.cycleMode?'請求サイクル(前月22日〜21日)':'暦月(1日〜月末)'}・聖域除く${budgetOverridden?'・個別予算':''}</span></h2>
       <div class="bignum num ${over?'warntext':''}">${yen(st.base)} <small>/ ${yen(budget)}</small></div>
       <div class="bar" style="display:flex">
         <div style="width:${basePct}%; background:${over?'var(--warn)':'var(--ai)'}"></div>
@@ -804,15 +1052,22 @@ function renderDash(){
       </div>
       <div class="barnote"><span>${st.count}件の明細${dlCycle!==null?`・締め日(21日)まで<span class="num">${dlCycle}</span>日`:``}</span><span class="num">${over?'超過 '+yen(st.base-budget):'残り '+yen(budget-st.base)}</span></div>
       ${planRec>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planRec)}</span></span><span class="num ${budget-st.base-planRec<0?'warntext':''}">実質残り ${yen(budget-st.base-planRec)}</span></div>`:''}
-      ${st.count===0?'<p class="muted mt">まだ明細がありません。「Log」タブからアメックスCSVを取り込んでください。</p>':''}
+      ${st.count===0?'<p class="muted mt">「Log」タブで明細を登録できます。</p>':''}
     </div>
+    ${monthlyBalanceCard}
+  </div>
+  ${todoCard}
+  <div id="savingsAdviceHome"></div>
+  <details class="dash-disclosure" data-dash-section="annual" ${dashSectionsOpen.annual?'open':''}>
+    <summary>年間の予算とカテゴリ枠 <span class="muted">${year}年</span></summary>
+    <div class="dash-details-body">
+    <div class="grid2">
     <div class="card">
     <h2>${esc(labelRec())}(年間) <span class="hint">${year}年・月予算×12(個別予算を反映)</span></h2>
     <div class="bignum num ${annualBase>annualBudget?'warntext':''}">${yen(annualBase)} <small>/ ${yen(annualBudget)}</small></div>
     <div class="bar"><div style="width:${Math.min(100, annualBudget>0?annualBase/annualBudget*100:0)}%; background:${annualBase>annualBudget?'var(--warn)':'var(--ai)'}"></div></div>
     <div class="barnote"><span>消化率 ${annualBudget>0?Math.round(annualBase/annualBudget*100):0}%${dlYear!==null?`・年末まで<span class="num">${dlYear}</span>日`:``}</span><span class="num">残り ${yen(Math.max(0,annualBudget-annualBase))}</span></div>
     </div>
-  </div>
   <div class="card">
       <h2>${esc(labelSac())} <span class="pill seiiki">聖域</span> <span class="hint">${year}年${lbOverridden?'・個別枠':''}</span></h2>
       <div class="bignum num">${yen(ly)} <small>/ ${yen(lb)}</small></div>
@@ -823,6 +1078,7 @@ function renderDash(){
       <div class="barnote"><span>消化率 ${Math.round(lyPct)}%${dlYear!==null?`・年末まで<span class="num">${dlYear}</span>日`:``}</span><span class="num">残り ${yen(Math.max(0,lb-ly))}</span></div>
       ${planSac>0?`<div class="barnote"><span class="muted">予定支出(未確定) <span class="num">${yen(planSac)}</span></span><span class="num ${lb-ly-planSac<0?'warntext':''}">実質残り ${yen(lb-ly-planSac)}</span></div>`:''}
       <p class="muted mt">回数・費用は維持する方針。削減対象外。</p>
+    </div>
     </div>
   ${exclCatList.length?`<div class="card">
     <h2>経常除外カテゴリ(年間実績) <span class="hint">${year}年・経常にも聖域にも入らない独立の財布。タップで明細</span></h2>
@@ -839,6 +1095,11 @@ function renderDash(){
     <h2>${esc(labelEnv())} <span class="hint">カテゴリ別の予算枠(予算設定で作成・編集)</span></h2>
     ${envBars}
   </div>`:''}
+    </div>
+  </details>
+  <details class="dash-disclosure" data-dash-section="analysis" ${dashSectionsOpen.analysis?'open':''}>
+    <summary>支出の推移と内訳 <span class="muted">月次・カテゴリ</span></summary>
+    <div class="dash-details-body">
   <div class="card">
     <h2>月次推移 <span class="hint">${chartYear}年・1月から横にスワイプして確認できます</span></h2>
     <div class="row mb" style="justify-content:space-between; align-items:center">
@@ -853,14 +1114,14 @@ function renderDash(){
     <p class="muted mt" style="font-size:11.5px">●=明細から集計、無印=初期データ。前年・翌年ボタンで年をまたいで確認できます。</p>
   </div>
   ${catEntries.length?`<div class="card">
-    <h2>カテゴリ別内訳 <span class="hint">${cyc.replace('-','年')}月請求・前月比は${hasPrev?prevCyc.replace('-','年')+'月請求との差':'前月データなし'}</span></h2>
+    <h2>カテゴリ別内訳 <span class="hint">${monthLabel(cyc)}・前月比は${hasPrev?monthLabel(prevCyc)+'との差':'前月データなし'}</span></h2>
     <div style="overflow-x:auto"><table>
       <tr><th>カテゴリ</th><th></th><th class="r">金額</th><th class="r">前月比</th></tr>
       ${catRows}
     </table></div>
   </div>`:''}
   ${matCats.length?`<div class="card">
-    <h2>カテゴリ推移 <span class="hint">${year}年1月〜${matEndMonth}月・請求月ベース・右端=年初来合計・青列=表示中の月</span></h2>
+    <h2>カテゴリ推移 <span class="hint">${year}年1月〜${matEndMonth}月・${state.settings.cycleMode?'請求月':'暦月'}ベース・右端=年初来合計・青列=表示中の月</span></h2>
     <div class="row mb" style="justify-content:flex-end">
       <button class="btn small" id="matPrevYear">◀ ${Number(year)-1}年</button>
       ${Number(year)<new Date().getFullYear()?`<button class="btn small" id="matNextYear">${Number(year)+1}年 ▶</button>`:''}
@@ -871,36 +1132,18 @@ function renderDash(){
       ${matTotalRow}
     </table></div>
   </div>`:''}
-  ${detailCard}
-  ${(state.todos||[]).filter(t=>!t.done).length?`<div class="card">
-    <h2>やること <span class="hint">直近のタスク(To doタブで管理)</span></h2>
-    ${(state.todos||[]).filter(t=>!t.done).sort((a,b)=>{if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return -1;return a.due<b.due?-1:1;}).slice(0,3).map(t=>{
-      const s = todoStatus(t);
-      return `<div class="barnote mb"><span>${s==='overdue'?'<span class=\'pill warn\'>期限切れ</span> ':''}${s==='soon'?'<span class=\'pill seiiki\'>まもなく</span> ':''}${esc(t.text)}</span><span class="num muted">${t.due?t.due.slice(5).replace('-','/')+'まで':''}</span></div>`;
-    }).join('')}
-  </div>`:''}
-  <div class="grid2">
-    <div class="card">
-      <h2>月の総収支(表示中の月) <span class="hint">アメックス外の固定費も含めた全体像</span></h2>
-      <table>
-        <tr><td>収入(登録分)</td><td class="r num">${monthIncome>0?yen(monthIncome):'<span class="muted">未登録</span>'}</td></tr>
-        <tr><td>明細実績(AMEX＋手動/自動)</td><td class="r num">${yen(st.total)}</td></tr>
-        <tr><td>明細未計上の固定費</td><td class="r num">${yen(fixedOther)}</td></tr>
-        ${state.fixed.filter(f=>f.active && f.method==='chisa' && f.amount>0).length?`<tr><td class="muted">パートナー払いの固定費(参考・差額に含めず)</td><td class="r num muted">${yen(state.fixed.filter(f=>f.active && f.method==='chisa').reduce((s,f)=>s+f.amount,0))}</td></tr>`:''}
-        ${state.fixed.filter(f=>f.active && f.method==='other' && !f.autoPost && f.amount>0).map(f=>`
-        <tr><td class="muted" style="padding-left:20px; font-size:12.5px">└ ${esc(f.label)}</td><td class="r num muted" style="font-size:12.5px">${yen(f.amount)}</td></tr>`).join('')}
-        <tr style="border-top:2px solid var(--line)"><td><strong>総支出</strong></td><td class="r num"><strong>${yen(st.total+fixedOther)}</strong></td></tr>
-        ${monthIncome>0?`<tr><td><strong>収支差額(投資余力)</strong></td><td class="r num ${monthIncome-st.total-fixedOther>=0?'oktext':'warntext'}"><strong>${yen(monthIncome-st.total-fixedOther)}</strong></td></tr>`:''}
-      </table>
-      ${monthIncome===0?'<p class="muted mt">Incomeタブに給与等を登録すると、収支差額(投資に回せる額)が表示されます。</p>':''}
     </div>
+  </details>
+  ${detailCard}
+  <details class="dash-disclosure" data-dash-section="fixed" ${dashSectionsOpen.fixed?'open':''}>
+    <summary>固定費と見直し候補 <span class="muted">登録 ${activeFixed.length}件</span></summary>
+    <div class="dash-details-body">
     <div class="card">
       <h2>解約候補による削減見込み</h2>
       <div class="bignum num oktext">${yen(cancelSave)}<small> /月</small></div>
       <p class="muted">年間換算 <span class="num">${yen(cancelSave*12)}</span></p>
       <p class="muted mt">対象: ${state.fixed.filter(f=>f.active&&f.cancel).map(f=>esc(f.label)).join('、')||'なし'}</p>
     </div>
-  </div>
   ${activeFixed.length?`<div class="card">
     <h2>固定費・サブスク <span class="hint">登録中の固定費の概要</span></h2>
     <div class="grid2">
@@ -914,13 +1157,21 @@ function renderDash(){
         <div class="barnote"><span>登録件数</span><span class="num">${activeFixed.length}件</span></div>
       </div>
     </div>
-  </div>`:''}`;
+  </div>`:''}
+    </div>
+  </details>`;
   el.querySelector('#dashPrev').onclick = ()=>{ dashCycle = shiftCycle(cyc, -1); trendYear = null; renderDash(); };
   const nx = el.querySelector('#dashNext');
   if(nx) nx.onclick = ()=>{ dashCycle = shiftCycle(cyc, 1); trendYear = null; renderDash(); };
   const td = el.querySelector('#dashToday');
   if(td) td.onclick = ()=>{ dashCycle = currentCycle(); trendYear = null; renderDash(); };
+  const todoButton = el.querySelector('#dashTodoOpen');
+  if(todoButton) todoButton.onclick = ()=>switchTab(todoTabVisible?'todo':'settings');
   el.querySelectorAll('.drill').forEach(d=>{
+    d.tabIndex=0;
+    d.setAttribute('role','button');
+    d.setAttribute('aria-label',d.dataset.cat+'・'+d.dataset.cyc+'の明細を表示');
+    d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();d.click();}};
     d.onclick = ()=>{
       dashDetail = { cat: d.dataset.cat, cycle: d.dataset.cyc };
       renderDash();
@@ -937,6 +1188,14 @@ function renderDash(){
   if(mscroll && Number(chartYear)===nowYear){
     requestAnimationFrame(()=>{ mscroll.scrollLeft = mscroll.scrollWidth; });
   }
+  el.querySelectorAll('details[data-dash-section]').forEach(section=>{
+    section.addEventListener('toggle',()=>{
+      dashSectionsOpen[section.dataset.dashSection]=section.open;
+      if(section.open && section.dataset.dashSection==='analysis' && mscroll && Number(chartYear)===nowYear){
+        requestAnimationFrame(()=>{mscroll.scrollLeft=mscroll.scrollWidth;});
+      }
+    });
+  });
 
   const py = el.querySelector('#matPrevYear');
   if(py) py.onclick = ()=>{ dashCycle = (Number(year)-1) + '-12'; trendYear = Number(year)-1; dashDetail = null; renderDash(); };
@@ -950,171 +1209,270 @@ function renderDash(){
   };
   const dc = el.querySelector('#detailClose');
   if(dc) dc.onclick = ()=>{ dashDetail = null; renderDash(); };
+  if(typeof renderSavingsAdvice==='function') renderSavingsAdvice(el.querySelector('#savingsAdviceHome'));
 }
 
 /* ---------- 明細 ---------- */
 let txMonth = '';
 let importPreview = null;
 let importRequest = 0;
+let txFilters = {query:'',category:'',source:''};
+let txFormDraft = {};
+let txDetailsOpen = {import:false,plans:false,manual:false};
+let txPreviewObserver = null;
+function logSearchKey(value){ return String(value||'').normalize('NFKC').toLowerCase(); }
+function logSource(transaction){ return transaction.src==='manual'?'manual':transaction.src==='recurring'?'recurring':'csv'; }
+function logRecordValues(values){
+  const date=String(values.date||''),merchant=String(values.merchant||'').trim(),amount=Number(values.amount);
+  if(!validImportDate(date)||!merchant||!Number.isSafeInteger(amount)||amount===0) throw Error('実在する日付・店名・0以外の整数の金額を入力してください。');
+  return {date,merchant,amount};
+}
+function getLogView(transactions, month, filters){
+  const scoped=transactions.filter(t=>month==='*' || cycleOf(t.date)===month);
+  const query=logSearchKey(filters.query).trim();
+  const rows=scoped.filter(t=>(!query || logSearchKey(t.merchant).includes(query))
+    && (!filters.category || t.category===filters.category)
+    && (!filters.source || logSource(t)===filters.source))
+    .sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  return {rows,totalCount:scoped.length,totalAmount:scoped.reduce((sum,t)=>sum+t.amount,0),filteredAmount:rows.reduce((sum,t)=>sum+t.amount,0)};
+}
+function logEmptyMessage(transactions, view){
+  if(!transactions.length) return 'まだ明細がありません。下の「CSV・Codexから明細を取り込む」か「手動で追加」から登録できます。';
+  if(!view.totalCount) return 'この月の明細はありません。別の月か「全期間」を選んでください。';
+  return '条件に一致する明細はありません。検索文字や絞り込み条件を変えてください。';
+}
+function logMonthlyDeletionCandidates(transactions, month, includeManual){
+  if(!month || month==='*') return [];
+  return transactions.filter(t=>cycleOf(t.date)===month && (includeManual || t.src!=='manual'));
+}
+function renderTxRow(t){
+  const source=logSource(t);
+  const sourceLabel=source==='manual'?'手動':source==='recurring'?'自動':'取込';
+  const categories=catNamesSel();
+  if(t.category && !categories.includes(t.category)) categories.push(t.category);
+  return '<tr data-id="'+esc(t.id)+'">'+
+    '<td class="num tx-date">'+esc(t.date)+'</td>'+
+    '<td class="tx-merchant"><span class="pill tx-source '+(source==='csv'?'ai':'ok')+'">'+sourceLabel+'</span>'+esc(t.merchant)+(t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':'')+(isSacred(t.category)?' <span class="pill seiiki">聖域</span>':'')+'</td>'+
+    '<td class="r num tx-amount">'+yen(t.amount)+'</td>'+
+    '<td class="tx-category"><select class="txcat" aria-label="'+esc(t.merchant)+'のカテゴリ">'+categories.map(c=>'<option value="'+esc(c)+'" '+(c===t.category?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></td>'+
+    '<td class="tx-actions"><button class="btn small txedit">編集</button><button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">分類を記憶</button><button class="btn small danger txdel" aria-label="'+esc(t.merchant)+'を削除">削除</button></td></tr>';
+}
+function commitLogMutation(change){
+  const before=JSON.parse(JSON.stringify(state));
+  change();
+  if(persist()===false){
+    Object.keys(state).forEach(key=>{ if(!Object.hasOwn(before,key)) delete state[key]; });
+    Object.assign(state,before);
+    if(typeof renderDataStatus==='function') renderDataStatus();
+    return false;
+  }
+  return true;
+}
+function renderTxResults(){
+  const el=document.getElementById('tab-tx'),host=el.querySelector('#txResults');
+  if(!host) return;
+  const view=getLogView(state.transactions,txMonth,txFilters);
+  const scope=txMonth==='*'?'全期間':txMonth+(state.settings.cycleMode?'請求':'');
+  el.querySelector('#txResultSummary').textContent='表示中 '+view.rows.length+'件・'+yen(view.filteredAmount);
+  el.querySelector('#txScopeSummary').textContent=scope+'の全明細 '+view.totalCount+'件・'+yen(view.totalAmount);
+  host.innerHTML=view.rows.length?'<div class="tx-scroll"><table class="tx-table" aria-label="明細一覧"><thead><tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th>操作</th></tr></thead><tbody>'+view.rows.map(renderTxRow).join('')+'</tbody></table></div>':'<p class="muted">'+logEmptyMessage(state.transactions,view)+'</p>';
+  host.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const t=state.transactions.find(x=>x.id===tr.dataset.id); if(!t) return;
+    tr.querySelector('.txcat').onchange=e=>{
+      const category=e.target.value,key=t.merchant.replace(/ \(\d+件目\)$/, '').trim();
+      const remember=category!=='未分類' && categorize(key)!==category && key.length>=2 && confirm('「'+key+'」を今後も「'+category+'」に自動分類しますか?');
+      commitLogMutation(()=>{ t.category=category; if(remember) state.merchantMap[key]=category; });
+      renderTxResults();
+    };
+    tr.querySelector('.txdel').onclick=()=>deleteRecordWithUndo('transactions',t.id,t.merchant,'tx');
+    tr.querySelector('.txedit').onclick=()=>{
+      const categories=catNamesSel(); if(t.category && !categories.includes(t.category)) categories.push(t.category);
+      openRecordEditor({title:'明細を編集',fields:[
+        {name:'date',label:'日付',type:'date',value:t.date,required:true},
+        {name:'merchant',label:'店名・内容',type:'text',value:t.merchant,required:true},
+        {name:'amount',label:'金額（円）',type:'number',value:t.amount,required:true,step:1},
+        {name:'category',label:'カテゴリ',type:'select',value:t.category,options:categories.map(value=>({value,label:value})),required:true}
+      ],onSave:values=>{
+        const {date,merchant,amount}=logRecordValues(values);
+        const current=state.transactions.find(x=>x.id===t.id);
+        if(!current){ alert('この明細は削除されています。'); return false; }
+        if(!commitLogMutation(()=>Object.assign(current,{date,merchant,amount,category:values.category}))) return false;
+        if(txMonth!=='*') txMonth=cycleOf(date);
+        renderTx(); return true;
+      }});
+    };
+    tr.querySelector('.txlearn').onclick=()=>{
+      const key=prompt('辞書に登録するキーワード（店名の一部）',t.merchant.slice(0,10));
+      if(!key?.trim()) return;
+      if(commitLogMutation(()=>{ state.merchantMap[key.trim()]=t.category; })) alert('「'+key.trim()+'」→「'+t.category+'」を登録しました。今後の取り込みで自動分類されます。');
+    };
+  });
+}
 function renderTx(){
   ensureRecurringTransactions();
-  const el = document.getElementById('tab-tx');
-  const cycles = [...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().reverse();
-  if(!txMonth || (!cycles.includes(txMonth) && cycles.length)) txMonth = cycles[0] || currentCycle();
-  const tx = state.transactions.filter(t=>cycleOf(t.date)===txMonth).sort((a,b)=>a.date<b.date?1:-1);
-  const st = cycleStats(txMonth);
-
-  const catOpts = c => catNamesSel().map(x=>`<option ${x===c?'selected':''}>${x}</option>`).join('');
-  const rows = tx.map(t=>`
-    <tr data-id="${t.id}" style="${t.src==='manual'||t.src==='recurring'?'background:var(--ok-bg);':''}">
-      <td class="num" style="white-space:nowrap">${t.date.slice(5).replace('-','/')}</td>
-      <td class="tx-merchant" title="${esc(t.merchant)}">${t.src==='manual'?'<span class="pill ok">手動</span> ':t.src==='recurring'?'<span class="pill ok">自動</span> ':''}${esc(t.merchant)}${t.amount>=20000 && !isSacred(t.category)?' <span class="pill warn">特別</span>':''}${isSacred(t.category)?' <span class="pill seiiki">聖域</span>':''}</td>
-      <td class="r num tx-amount">${yen(t.amount)}</td>
-      <td class="tx-category"><select class="txcat">${catOpts(t.category)}</select></td>
-      <td class="tx-actions"><button class="btn small txedit">編集</button> <button class="btn small txlearn" title="この店名とカテゴリを辞書に登録">記憶</button> <button class="btn small txdel">×</button></td>
-    </tr>`).join('');
-
-  el.innerHTML = `
-  <div class="card">
-    <h2>CSV・Codexから明細を取り込む</h2>
-    <p class="muted mb">Amexの明細PDFをLedgersのCodexチャットに添付すると、取り込みとクラウド保存まで進めます。CSVやCodexが用意した明細は、ここで内容を確認してから追加できます。</p>
-    <div class="row mb">
-      <input type="file" id="csvFile" accept=".csv,.txt,.json" aria-label="明細ファイルを選択">
-    </div>
-    <label for="csvPaste" class="muted">CSV・Codexが用意した明細</label>
-    <textarea id="csvPaste" placeholder="例:&#10;2026/06/16,お店,1200&#10;Codexが用意した明細も貼り付けられます。"></textarea>
-    <button class="btn primary mt" id="importBtn">内容を確認する</button>
-    <p class="muted mt" id="importMsg" role="status" aria-live="polite"></p>
-    <div id="importPreview"></div>
-  </div>
-  <div class="card">
-    <h2>予定支出(未来枠) <span class="hint">まだ確定していない将来の支出。ダッシュボードに薄い色で反映されます</span></h2>
-    <div class="row mb">
-      <input type="date" id="plDate">
-      <input type="text" id="plText" placeholder="例: 同期との飲み会" style="flex:1; min-width:140px">
-      <input type="number" id="plAmount" placeholder="金額(概算)" style="width:110px">
-      <select id="plCat">${catNamesSel().map(c=>`<option ${c==='未分類'?'selected':''}>${c}</option>`).join('')}</select>
-      <button class="btn primary" id="plAdd">予定を追加</button>
-    </div>
-    ${(state.plans||[]).length?`<table>
-      <tr><th>予定日</th><th>内容</th><th class="r">金額(概算)</th><th>カテゴリ</th><th></th></tr>
-      ${state.plans.sort((a,b)=>a.date<b.date?-1:1).map(p=>{
-        const past = p.date < new Date().toISOString().slice(0,10);
-        return `<tr data-pid="${p.id}" style="${past?'':''}">
-          <td class="num" style="white-space:nowrap">${p.date.slice(5).replace('-','/')}${past?' <span class="pill warn">要確認</span>':' <span class="pill ai">予定</span>'}</td>
-          <td>${esc(p.text)}</td>
-          <td class="r num">${yen(p.amount)}</td>
-          <td><select class="plcat">${catNamesSel().map(x=>`<option ${x===p.category?'selected':''}>${x}</option>`).join('')}</select></td>
-          <td><button class="btn small pldel">×</button></td>
-        </tr>`;
-      }).join('')}
-    </table>
-    <p class="muted mt">実際の支出がCSV/明細で入ったら、対応する予定を×で消してください。予定日を過ぎたものには「要確認」が付きます。</p>`:'<p class="muted">予定はありません。飲み会や旅行など、決まっているお金を先に登録しておくと「実質残り」が見えます。</p>'}
-  </div>
-  <div class="card">
-    <h2>明細一覧
-      <select id="txMonthSel" style="margin-left:10px">${(cycles.length?cycles:[txMonth]).map(c=>`<option ${c===txMonth?'selected':''}>${c}</option>`).join('')}</select>
-      <span class="hint">合計 <span class="num">${yen(st.total)}</span>(経常 <span class="num">${yen(st.base)}</span> + レジャー <span class="num">${yen(st.leisure)}</span>)</span>
-    </h2>
-    <div class="row mb">
-      <input type="date" id="manDate"><input type="text" id="manMerchant" placeholder="店名・内容" style="flex:1; min-width:140px"><input type="number" id="manAmount" placeholder="金額" style="width:110px">
-      <button class="btn" id="manAdd">手動追加</button>
-      <button class="btn danger" id="monthDel">この月を一括削除</button>
-    </div>
-    ${tx.length?`<div class="tx-scroll"><table class="tx-table">
-      <tr><th>日付</th><th>店名</th><th class="r">金額</th><th>カテゴリ</th><th></th></tr>${rows}
-    </table></div>`:'<p class="muted">この月の明細はまだありません。</p>'}
-  </div>`;
-
-  el.querySelector('#txMonthSel').onchange = e=>{ txMonth = e.target.value; renderTx(); };
-  el.querySelector('#importBtn').onclick = ()=>{ importCsvText(el.querySelector('#csvPaste').value); };
-  el.querySelector('#csvFile').onchange = e=>{
-    const f = e.target.files[0]; if(!f) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{ el.querySelector('#csvPaste').value = ev.target.result; importCsvText(ev.target.result); };
-    reader.onerror = ()=>{ el.querySelector('#importMsg').textContent = 'ファイルを読み込めませんでした。もう一度選択してください。'; };
+  const el=document.getElementById('tab-tx');
+  const draftIds=['csvPaste','manDate','manMerchant','manAmount','plDate','plText','plAmount','plCat'];
+  draftIds.forEach(id=>{ const input=el.querySelector('#'+id); if(input) txFormDraft[id]=input.value; });
+  for(const [name,id] of [['import','txImportDetails'],['plans','txPlansDetails'],['manual','txManualDetails']]){
+    const details=el.querySelector('#'+id); if(details) txDetailsOpen[name]=details.open;
+  }
+  const importMessage=el.querySelector('#importMsg')?.textContent||'';
+  if(txPreviewObserver) txPreviewObserver.disconnect();
+  const cycles=[...new Set(state.transactions.map(t=>cycleOf(t.date)))].sort().reverse();
+  if(!txMonth) txMonth=cycles[0]||currentCycle();
+  if(txMonth!=='*' && !cycles.includes(txMonth)) cycles.push(txMonth);
+  cycles.sort().reverse();
+  const categories=Array.from(new Set([...catNamesSel(),...state.transactions.map(t=>t.category)])).filter(Boolean);
+  if(txFilters.category && !categories.includes(txFilters.category)) txFilters.category='';
+  const planCount=(state.plans||[]).length;
+  const monthOptions='<option value="*" '+(txMonth==='*'?'selected':'')+'>全期間</option>'+cycles.map(c=>'<option value="'+c+'" '+(c===txMonth?'selected':'')+'>'+c+(state.settings.cycleMode?'請求':'')+'</option>').join('');
+  const categoryOptions='<option value="">すべてのカテゴリ</option>'+categories.map(c=>'<option value="'+esc(c)+'" '+(c===txFilters.category?'selected':'')+'>'+esc(c)+'</option>').join('');
+  const sourceOptions='<option value="">すべて</option>'+[['csv','CSV・PDF取込'],['manual','手動'],['recurring','固定費から自動']].map(([value,label])=>'<option value="'+value+'" '+(value===txFilters.source?'selected':'')+'>'+label+'</option>').join('');
+  const planOptions=catNamesSel().map(c=>'<option '+(c==='未分類'?'selected':'')+'>'+esc(c)+'</option>').join('');
+  const planRows=[...(state.plans||[])].sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0).map(p=>{
+    const now=new Date(),today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    return '<tr data-pid="'+esc(p.id)+'"><td class="num" style="white-space:nowrap">'+esc(p.date)+' '+(p.date<today?'<span class="pill warn">要確認</span>':'<span class="pill ai">予定</span>')+'</td><td>'+esc(p.text)+'</td><td class="r num">'+yen(p.amount)+'</td><td><select class="plcat" aria-label="'+esc(p.text)+'のカテゴリ">'+catNamesSel().map(c=>'<option '+(c===p.category?'selected':'')+'>'+esc(c)+'</option>').join('')+'</select></td><td><button class="btn small danger pldel" aria-label="'+esc(p.text)+'の予定を削除">削除</button></td></tr>';
+  }).join('');
+  const bulkHtml=txMonth!=='*'?'<details class="tx-bulk"><summary>'+txMonth+'の一括削除</summary><p>検索・絞り込みにかかわらず、この月の明細全体が対象です。</p><div class="row mt"><label><input type="checkbox" id="monthDelManual"> 手動で追加した明細も含める</label><button class="btn danger" id="monthDel">'+txMonth+'の明細を削除</button></div></details>':'';
+  el.innerHTML=
+  '<div class="card">'+
+    '<div class="row" style="justify-content:space-between"><h2 style="margin-bottom:0">明細一覧</h2><label class="muted">期間 <select id="txMonthSel" aria-label="明細の期間" style="min-height:44px">'+monthOptions+'</select></label></div>'+
+    '<div class="tx-tools">'+
+      '<label class="tx-search-label" for="txSearch">店名・内容を検索<input type="search" id="txSearch" value="'+esc(txFilters.query)+'" placeholder="店名・内容" autocomplete="off"></label>'+
+      '<label for="txCategoryFilter">カテゴリ<select id="txCategoryFilter">'+categoryOptions+'</select></label>'+
+      '<label for="txSourceFilter">登録方法<select id="txSourceFilter">'+sourceOptions+'</select></label>'+
+    '</div>'+
+    '<div class="tx-summary" aria-live="polite"><strong class="num" id="txResultSummary"></strong><span class="muted" id="txScopeSummary"></span></div><div id="txResults"></div>'+
+    '<details id="txManualDetails" class="tx-disclosure tx-manual" '+(txDetailsOpen.manual?'open':'')+'><summary>手動で追加</summary>'+
+      '<div class="row"><label>日付<input type="date" id="manDate"></label><label>店名・内容<input type="text" id="manMerchant" placeholder="店名・内容"></label><label>金額（円）<input type="number" id="manAmount" step="1" placeholder="金額"></label><button class="btn" id="manAdd" style="min-height:44px;align-self:flex-end">手動追加</button></div>'+
+    '</details>'+bulkHtml+
+  '</div>'+
+  '<details class="card tx-disclosure" id="txImportDetails" '+(txDetailsOpen.import||importPreview?'open':'')+'>'+
+    '<summary>CSV・Codexから明細を取り込む</summary>'+
+    '<p class="muted mb">Amexの明細PDFをLedgersのCodexチャットに添付すると、取り込みとクラウド保存まで進めます。CSVやCodexが用意した明細は、ここで内容を確認してから追加できます。</p>'+
+    '<div class="row mb"><input type="file" id="csvFile" accept=".csv,.txt,.json" aria-label="明細ファイルを選択"></div>'+
+    '<label for="csvPaste" class="muted">CSV・Codexが用意した明細</label>'+
+    '<textarea id="csvPaste" placeholder="例:&#10;2026/06/16,お店,1200&#10;Codexが用意した明細も貼り付けられます。"></textarea>'+
+    '<button class="btn primary mt" id="importBtn">内容を確認する</button><p class="muted mt" id="importMsg" role="status" aria-live="polite"></p><div id="importPreview"></div>'+
+  '</details>'+
+  '<details class="card tx-disclosure" id="txPlansDetails" '+(txDetailsOpen.plans?'open':'')+'>'+
+    '<summary>予定支出'+(planCount?'（'+planCount+'件）':'')+'</summary>'+
+    '<p class="muted mb">これからの支出を登録すると、Homeの「実質残り」に反映されます。</p>'+
+    '<div class="row mb"><input type="date" id="plDate" aria-label="予定日"><input type="text" id="plText" placeholder="例: 同期との飲み会" aria-label="予定の内容" style="flex:1;min-width:140px"><input type="number" id="plAmount" placeholder="金額（概算）" aria-label="予定金額" min="1" step="1" style="width:120px"><select id="plCat" aria-label="予定のカテゴリ">'+planOptions+'</select><button class="btn primary" id="plAdd">予定を追加</button></div>'+
+    (planCount?'<div style="overflow-x:auto"><table><thead><tr><th>予定日</th><th>内容</th><th class="r">金額（概算）</th><th>カテゴリ</th><th></th></tr></thead><tbody>'+planRows+'</tbody></table></div><p class="muted mt">実際の支出を取り込んだら、対応する予定を削除してください。予定日を過ぎたものには「要確認」が付きます。</p>':'<p class="muted">予定はありません。飲み会や旅行など、決まっている支出を登録できます。</p>')+
+  '</details>';
+  draftIds.forEach(id=>{ const input=el.querySelector('#'+id); if(input && Object.hasOwn(txFormDraft,id)) input.value=txFormDraft[id]; });
+  el.querySelector('#importMsg').textContent=importMessage;
+  el.querySelector('#txMonthSel').onchange=e=>{ txMonth=e.target.value; renderTx(); };
+  el.querySelector('#txSearch').oninput=e=>{ txFilters.query=e.target.value; renderTxResults(); };
+  el.querySelector('#txCategoryFilter').onchange=e=>{ txFilters.category=e.target.value; renderTxResults(); };
+  el.querySelector('#txSourceFilter').onchange=e=>{ txFilters.source=e.target.value; renderTxResults(); };
+  el.querySelector('#importBtn').onclick=()=>{ el.querySelector('#txImportDetails').open=true; importCsvText(el.querySelector('#csvPaste').value); };
+  el.querySelector('#csvFile').onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{ el.querySelector('#csvPaste').value=ev.target.result; txFormDraft.csvPaste=ev.target.result; el.querySelector('#txImportDetails').open=true; importCsvText(ev.target.result); };
+    reader.onerror=()=>{ el.querySelector('#importMsg').textContent='ファイルを読み込めませんでした。もう一度選択してください。'; };
     reader.readAsText(f);
   };
-  el.querySelector('#manAdd').onclick = ()=>{
-    const d = el.querySelector('#manDate').value, m = el.querySelector('#manMerchant').value.trim(), a = parseInt(el.querySelector('#manAmount').value);
-    if(!d||!m||!a){ alert('日付・店名・金額を入力してください'); return; }
-    state.transactions.push({id:uid(), date:d, merchant:m, amount:a, category:categorize(m), src:'manual'});
-    txMonth = cycleOf(d); persist(); renderTx();
+  const previewHost=el.querySelector('#importPreview');
+  txPreviewObserver=new MutationObserver(()=>{ if(previewHost.childElementCount){ el.querySelector('#txImportDetails').open=true; txDetailsOpen.import=true; } });
+  txPreviewObserver.observe(previewHost,{childList:true});
+  el.querySelector('#manAdd').onclick=()=>{
+    let values;
+    try{ values=logRecordValues({date:el.querySelector('#manDate').value,merchant:el.querySelector('#manMerchant').value,amount:el.querySelector('#manAmount').value}); }catch(error){ alert(error.message); return; }
+    const {date,merchant,amount}=values;
+    if(!commitLogMutation(()=>state.transactions.push({id:uid(),date,merchant,amount,category:categorize(merchant),src:'manual'}))) return;
+    txMonth=cycleOf(date); el.querySelector('#manMerchant').value=''; el.querySelector('#manAmount').value=''; renderTx();
   };
-  el.querySelector('#monthDel').onclick = ()=>{
-    const inMonth = state.transactions.filter(t=>cycleOf(t.date)===txMonth);
-    if(!inMonth.length){ alert('この月に明細はありません'); return; }
-    const manualCnt = inMonth.filter(t=>t.src==='manual').length;
-    if(!confirm(`${txMonth}請求の明細${inMonth.length}件を削除します。\n速報データを確定データ(PDF版)に置き換える前の整理などに使ってください。\n\n続けますか?`)) return;
-    let keepManual = false;
-    if(manualCnt > 0){
-      keepManual = !confirm(`この月には手動明細が${manualCnt}件あります。\n\nOK = 手動明細も含めてすべて削除\nキャンセル = 手動明細は残して、取り込み分だけ削除`);
-    }
-    const deleting = state.transactions.filter(t=>{
-      if(cycleOf(t.date)!==txMonth) return false;
-      if(keepManual && t.src==='manual') return false;
-      return true;
-    });
-    deleting.forEach(t=>{ if(t.src==='recurring' && t.recurringKey) skipRecurringKey(t.recurringKey); });
-    state.transactions = state.transactions.filter(t=>!deleting.includes(t));
-    persist(); renderTx();
+  const monthDelete=el.querySelector('#monthDel');
+  if(monthDelete) monthDelete.onclick=()=>{
+    if(txMonth==='*') return;
+    const includeManual=el.querySelector('#monthDelManual').checked;
+    const deleting=logMonthlyDeletionCandidates(state.transactions,txMonth,includeManual);
+    if(!deleting.length){ alert('削除対象の明細はありません。手動で追加した明細は、チェックを付けない限り残ります。'); return; }
+    if(!confirm(txMonth+'の明細'+deleting.length+'件を削除します。検索・絞り込み条件は適用されません。\n'+(includeManual?'手動で追加した明細も含みます。':'手動で追加した明細は残します。')+'\n\n削除しますか？')) return;
+    if(commitLogMutation(()=>{ deleting.forEach(t=>{if(t.src==='recurring'&&t.recurringKey) skipRecurringKey(t.recurringKey);}); state.transactions=state.transactions.filter(t=>!deleting.includes(t)); })) renderTx();
   };
-  el.querySelector('#plAdd').onclick = ()=>{
-    const d = el.querySelector('#plDate').value, t = el.querySelector('#plText').value.trim(), a = parseInt(el.querySelector('#plAmount').value);
-    if(!d||!t||!a){ alert('予定日・内容・金額を入力してください'); return; }
-    if(!state.plans) state.plans = [];
-    state.plans.push({id:uid(), date:d, text:t, amount:a, category:el.querySelector('#plCat').value});
-    persist(); renderTx();
+  el.querySelector('#plAdd').onclick=()=>{
+    const date=el.querySelector('#plDate').value,text=el.querySelector('#plText').value.trim(),amount=Number(el.querySelector('#plAmount').value);
+    if(!validImportDate(date)||!text||!Number.isSafeInteger(amount)||amount<=0){ alert('予定日・内容・正の整数の金額を入力してください。'); return; }
+    if(!commitLogMutation(()=>{ if(!state.plans) state.plans=[]; state.plans.push({id:uid(),date,text,amount,category:el.querySelector('#plCat').value}); })) return;
+    el.querySelector('#plText').value=''; el.querySelector('#plAmount').value=''; renderTx();
   };
   el.querySelectorAll('tr[data-pid]').forEach(tr=>{
-    const p = state.plans.find(x=>x.id===tr.dataset.pid);
-    tr.querySelector('.plcat').onchange = e=>{ p.category = e.target.value; persist(); renderTx(); };
-    tr.querySelector('.pldel').onclick = ()=>{
-      state.plans = state.plans.filter(x=>x.id!==p.id);
-      persist(); renderTx();
-    };
+    const p=state.plans.find(x=>x.id===tr.dataset.pid);
+    tr.querySelector('.plcat').onchange=e=>{ commitLogMutation(()=>{p.category=e.target.value;}); renderTx(); };
+    tr.querySelector('.pldel').onclick=()=>deleteRecordWithUndo('plans',p.id,p.text,'tx');
   });
-  el.querySelectorAll('tr[data-id]').forEach(tr=>{
-    const id = tr.dataset.id;
-    const t = state.transactions.find(x=>x.id===id);
-    tr.querySelector('.txcat').onchange = e=>{
-      const newCat = e.target.value;
-      t.category = newCat;
-      const key = t.merchant.replace(/ \(\d+件目\)$/, '').trim();
-      if(newCat !== '未分類' && categorize(key) !== newCat && key.length >= 2){
-        if(confirm(`「${key}」を今後もずっと「${newCat}」に自動分類しますか?`)){
-          state.merchantMap[key] = newCat;
-        }
-      }
-      persist(); renderTx();
-    };
-    tr.querySelector('.txdel').onclick = ()=>{
-      if(t.src==='recurring' && t.recurringKey) skipRecurringKey(t.recurringKey);
-      state.transactions = state.transactions.filter(x=>x.id!==id);
-      persist(); renderTx();
-    };
-    tr.querySelector('.txedit').onclick = ()=>{
-      const d = prompt('日付(YYYY-MM-DD)', t.date); if(d===null) return;
-      const m = prompt('店名・内容', t.merchant); if(m===null) return;
-      const a = prompt('金額(円)', t.amount); if(a===null) return;
-      if(/^\d{4}-\d{2}-\d{2}$/.test(d.trim())) t.date = d.trim();
-      t.merchant = m.trim() || t.merchant;
-      const av = parseInt(a); if(av && av>0) t.amount = av;
-      if(!t.src){
-        t.src = confirm('この明細は手動で入力したものですか?\n\nOK = 手動明細(緑表示・一括削除から保護可能)\nキャンセル = CSV取り込み分') ? 'manual' : 'csv';
-      }
-      txMonth = cycleOf(t.date);
-      persist(); renderTx();
-    };
-    tr.querySelector('.txlearn').onclick = ()=>{
-      const key = prompt('辞書に登録するキーワード(店名の一部)', t.merchant.slice(0,10));
-      if(key){ state.merchantMap[key.trim()] = t.category; persist(); alert(`「${key.trim()}」→「${t.category}」を登録しました。今後の取り込みで自動分類されます。`); }
-    };
-  });
+  renderTxResults();
   renderImportPreview();
 }
 
 // 入力の解析・重複判定と保存を分離し、確認前には明細を変更しない。
+
+
+function normalizeSavingsAdvice(input, rows, sourceDigest, sourceName) {
+  const fail = message => { throw Error('節約アドバイス: ' + message); };
+  const text = (value, label, max) => {
+    if(typeof value!=='string' || !value.trim() || value.length>max) fail(label+'を1〜'+max+'文字で指定してください。');
+    return value.trim();
+  };
+  if(!input || typeof input!=='object' || Array.isArray(input)) fail('形式が正しくありません。');
+  if(typeof input.generatedAt!=='string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input.generatedAt)
+    || !Number.isFinite(Date.parse(input.generatedAt)) || new Date(input.generatedAt).toISOString()!==input.generatedAt) fail('作成日時をISO形式で指定してください。');
+  if(!Array.isArray(input.suggestions) || !input.suggestions.length || input.suggestions.length>5) fail('提案は1〜5件で指定してください。');
+  const dates=rows.map(row=>row.date).sort();
+  const suggestions=input.suggestions.map(item=>{
+    if(!item || typeof item!=='object') fail('提案の形式が正しくありません。');
+    const indexes=item.transactionIndexes;
+    if(!Array.isArray(indexes) || !indexes.length || indexes.length>rows.length || new Set(indexes).size!==indexes.length
+      || indexes.some(i=>!Number.isInteger(i) || i<0 || i>=rows.length)) fail('提案の根拠となる明細番号を確認してください。');
+    const observedAmount=indexes.reduce((sum,index)=>sum+rows[index].amount,0);
+    if(!Number.isSafeInteger(observedAmount)) fail('根拠の合計金額が大きすぎます。');
+    const result={title:text(item.title,'提案名',100),evidence:text(item.evidence,'根拠',600),
+      action:text(item.action,'行動',600),observedCount:indexes.length,observedAmount};
+    if(item.reductionPercent!==undefined){
+      if(!Number.isInteger(item.reductionPercent) || item.reductionPercent<1 || item.reductionPercent>100) fail('削減率は1〜100の整数で指定してください。');
+      result.reductionPercent=item.reductionPercent;
+      result.estimatedSaving=Number(BigInt(observedAmount)*BigInt(item.reductionPercent)/100n);
+      result.assumption=text(item.assumption,'試算条件',400);
+    }
+    return result;
+  });
+  const total=rows.reduce((sum,row)=>sum+row.amount,0);
+  if(!Number.isSafeInteger(total)) fail('明細の合計金額が大きすぎます。');
+  return {id:sourceDigest,sourceName,generatedAt:input.generatedAt,periodStart:dates[0],periodEnd:dates[dates.length-1],
+    transactionCount:rows.length,purchaseTotal:total,summary:text(input.summary,'要約',1000),suggestions,
+    limitations:input.limitations===undefined?'':text(input.limitations,'補足',800)};
+}
+
+function adviceReadyForImport(parsed,rows,selected){
+  return !!parsed.advice && !parsed.fatal && rows.every(r=>r.status!=='new' || selected.has(r.index));
+}
+function savingsReportsWith(report){
+  const reports=Array.isArray(state.savingsReports)?state.savingsReports:[];
+  const previous=reports.find(r=>r.id===report.id);
+  if(previous && previous.generatedAt>=report.generatedAt) return reports;
+  return reports.filter(r=>r.id!==report.id).concat(report).sort((a,b)=>b.generatedAt.localeCompare(a.generatedAt));
+}
+function renderSavingsAdvice(host){
+  if(!host) return;
+  const reports=(Array.isArray(state.savingsReports)?state.savingsReports:[]).filter(r=>r && typeof r.id==='string' && Array.isArray(r.suggestions)).slice().sort((a,b)=>String(b.generatedAt).localeCompare(String(a.generatedAt)));
+  if(!reports.length){
+    host.innerHTML='<div class="card savings-advice"><h2>AIの節約アドバイス</h2><p class="muted">次のAmex明細PDFをCodexに渡すと、取り込みと一緒に支出を振り返り、見直し候補をここに保存します。</p><p class="hint mt">PDFを添付するだけで進められます。作成した提案はクラウド保存で他の端末からも確認できます。</p></div>';
+    return;
+  }
+  host.innerHTML=`<div class="card savings-advice"><h2>AIの節約アドバイス</h2>${reports.length>1?`<label class="hint" for="adviceReportSelect">過去のアドバイス</label><select id="adviceReportSelect">${reports.map((r,i)=>`<option value="${i}">${esc(r.periodStart)}〜${esc(r.periodEnd)} · ${esc(formatJst(r.generatedAt))}</option>`).join('')}</select>`:''}<div id="adviceReportContent"></div></div>`;
+  const display=index=>{
+    const r=reports[index];
+    host.querySelector('#adviceReportContent').innerHTML=`<p class="advice-meta mt">対象の利用日 ${esc(r.periodStart)}〜${esc(r.periodEnd)}<br>購入明細 ${esc(r.transactionCount)}件・${yen(Number(r.purchaseTotal)||0)}<br>作成 ${esc(formatJst(r.generatedAt))} · Codex</p>
+      <p class="advice-summary">${esc(r.summary)}</p><div class="advice-items">${r.suggestions.slice(0,5).filter(s=>s&&typeof s==='object').map(s=>`<article class="advice-item"><h3>${esc(s.title)}</h3><p class="advice-amount">根拠となる支出 ${esc(s.observedCount)}件・${yen(Number(s.observedAmount)||0)}</p><p class="muted">${esc(s.evidence)}</p><p class="mt">${esc(s.action)}</p>${Number.isInteger(s.reductionPercent)&&s.reductionPercent>=1&&s.reductionPercent<=100?`<div class="advice-scenario">この支出を${s.reductionPercent}％減らすと、この対象期間で約${yen(Number(BigInt(Number.isSafeInteger(s.observedAmount)?s.observedAmount:0)*BigInt(s.reductionPercent)/100n))}の節約になる試算です。<br>${esc(s.assumption)}</div>`:''}</article>`).join('')}</div>
+      <details class="mt"><summary>分析の対象と補足</summary><p class="advice-meta">${esc(r.sourceName)}の購入明細を基にした、作成時点の提案です。返金・支払・他のカード・現金などは含まれず、家計全体の分析ではありません。取り込み後の編集内容は自動では反映されません。試算は削減を実行した場合の目安で、提案同士の対象が重なることがあるため合計していません。${r.limitations?'<br>'+esc(r.limitations):''}</p></details>`;
+  };
+  display(0);
+  const select=host.querySelector('#adviceReportSelect'); if(select) select.onchange=()=>display(Number(select.value));
+}
 function importMerchantKey(merchant){ return cleanMerchant(merchant).replace(/\s*\(\d+件目\)$/, '').trim(); }
 function importRowKey(row){ return JSON.stringify([row.date, importMerchantKey(row.merchant), row.amount]); }
 function validImportDate(value){
@@ -1164,6 +1522,7 @@ async function parseImportText(text){
       result.rows.push(row);
     }
     result.fatal = result.errors.length>0; // JSONは全行を検証してから一括で受け付ける。
+    if(data.savingsAdvice!==undefined && !result.fatal) result.advice=normalizeSavingsAdvice(data.savingsAdvice,result.rows,data.sourceDigest,result.sourceName);
   }else{
     const lines = source.split(/\r?\n/);
     if(lines.length>12000) throw Error('明細の行数が多すぎます。ファイルを分けてください。');
@@ -1232,6 +1591,7 @@ function renderImportPreview(){
   const imported=rows.filter(r=>r.status==='imported').length;
   const overlaps=rows.filter(r=>r.status==='overlap').length;
   const selectedRows=rows.filter(r=>selected.has(r.index));
+  const adviceReady=adviceReadyForImport(parsed,rows,selected);
   host.innerHTML=`<div class="mt" style="border-top:1px solid var(--line);padding-top:14px">
     <h2>取り込み前の確認 <span class="hint">${esc(parsed.sourceName)}</span></h2>
     <p class="muted">有効な明細 ${rows.length}件・合計 ${yen(rows.reduce((sum,r)=>sum+r.amount,0))}<br>同じPDFから取込済み ${imported}件 / 既存明細との一致候補 ${overlaps}件 / 支払・返金・0円を除外 ${parsed.ignored}件 / 入力エラー ${parsed.errors.length}件</p>
@@ -1241,8 +1601,9 @@ function renderImportPreview(){
       <input type="checkbox" data-import-index="${r.index}" ${selected.has(r.index)?'checked':''} ${r.status==='imported'||parsed.fatal?'disabled':''} style="min-width:22px;min-height:22px;margin-top:3px" aria-label="${esc(r.merchant)} ${yen(r.amount)}を追加">
       <span style="flex:1;min-width:0;overflow-wrap:anywhere"><strong>${esc(r.merchant)}</strong> <span class="num">${yen(r.amount)}</span><br><span class="muted">${r.date}・${r.status==='imported'?'取込済み':r.status==='overlap'?'既存と一致・要確認':'追加候補'}</span></span>
     </label>`).join('')}</div>`:''}
+    ${parsed.advice?`<details class="mt" open><summary>AIの節約アドバイス（${parsed.advice.suggestions.length}件）</summary><p class="muted mt">${esc(parsed.advice.summary)}</p><ul style="padding-left:22px">${parsed.advice.suggestions.map(s=>`<li><strong>${esc(s.title)}</strong>：${esc(s.action)}<br><span class="hint">根拠 ${s.observedCount}件・${yen(s.observedAmount)}</span></li>`).join('')}</ul><p id="importAdviceStatus" class="hint">${adviceReady?'アドバイスもHomeに保存します。':'未選択の新規明細があるため、今回はアドバイスを保存しません。'}</p></details>`:''}
     <p class="mt" id="importSelectedSummary">追加する明細 ${selectedRows.length}件・${yen(selectedRows.reduce((sum,r)=>sum+r.amount,0))}</p>
-    <div class="row mt"><button class="btn primary" id="importConfirm" ${parsed.fatal||!selectedRows.length?'disabled':''}>選択した明細を取り込む</button><button class="btn" id="importCancel">キャンセル</button></div>
+    <div class="row mt"><button class="btn primary" id="importConfirm" ${parsed.fatal||(!selectedRows.length&&!adviceReady)?'disabled':''}>${adviceReady?(selectedRows.length?'明細とアドバイスを保存':'アドバイスを保存'):'選択した明細を取り込む'}</button><button class="btn" id="importCancel">キャンセル</button></div>
   </div>`;
   host.querySelectorAll('[data-import-index]').forEach(input=>{
     input.onchange=()=>{
@@ -1250,7 +1611,12 @@ function renderImportPreview(){
       if(input.checked) selected.add(index); else selected.delete(index);
       const chosen=rows.filter(r=>selected.has(r.index));
       document.getElementById('importSelectedSummary').textContent=`追加する明細 ${chosen.length}件・${yen(chosen.reduce((sum,r)=>sum+r.amount,0))}`;
-      document.getElementById('importConfirm').disabled=parsed.fatal||!chosen.length;
+      const ready=adviceReadyForImport(parsed,rows,selected);
+      const confirmButton=document.getElementById('importConfirm');
+      confirmButton.disabled=parsed.fatal||(!chosen.length&&!ready);
+      confirmButton.textContent=ready?(chosen.length?'明細とアドバイスを保存':'アドバイスを保存'):'選択した明細を取り込む';
+      const adviceStatus=document.getElementById('importAdviceStatus');
+      if(adviceStatus) adviceStatus.textContent=ready?'アドバイスもHomeに保存します。':'未選択の新規明細があるため、今回はアドバイスを保存しません。';
     };
   });
   document.getElementById('importCancel').onclick=()=>{ ++importRequest; importPreview=null; renderImportPreview(); document.getElementById('importMsg').textContent='取り込みをキャンセルしました。明細は変更していません。'; };
@@ -1273,22 +1639,30 @@ function confirmImportPreview(){
     category:r.category && catNames().includes(r.category)?r.category:categorize(r.merchant), src:'csv'
   }));
   const ignored=parsed.ignored, errors=parsed.errors.length;
-  if(additions.length){
+  const adviceReady=adviceReadyForImport(parsed,fresh,selected);
+  const reportsBefore=state.savingsReports;
+  const reportsNext=adviceReady?savingsReportsWith(parsed.advice):reportsBefore;
+  const adviceSaved=adviceReady && reportsNext!==reportsBefore;
+  if(additions.length || adviceSaved){
     const before=state.transactions, beforeUpdatedAt=state.updatedAt;
     state.transactions=before.concat(additions);
+    if(adviceSaved) state.savingsReports=reportsNext;
     if(persist()===false){
       state.transactions=before;
+      if(reportsBefore===undefined) delete state.savingsReports; else state.savingsReports=reportsBefore;
       if(beforeUpdatedAt===undefined) delete state.updatedAt; else state.updatedAt=beforeUpdatedAt;
+      if(typeof renderDataStatus==='function') renderDataStatus();
       document.getElementById('importMsg').textContent='端末に保存できなかったため、取り込みを完了していません。保存領域を確認して、もう一度お試しください。';
       return;
     }
-    txMonth=cycleOf(additions[additions.length-1].date);
+    if(additions.length) txMonth=cycleOf(additions[additions.length-1].date);
   }
   importPreview=null; ++importRequest;
   renderTx();
   document.getElementById('importMsg').textContent=additions.length
     ? `${additions.length}件・${yen(additions.reduce((sum,r)=>sum+r.amount,0))}を追加しました。未選択・取込済み ${fresh.length-additions.length}件、支払・返金等 ${ignored}件、入力エラー ${errors}件は追加していません。`
     : '追加する明細はありません。取込済みの明細は追加していません。';
+  if(parsed.advice) document.getElementById('importMsg').textContent+=adviceSaved?' AIの節約アドバイスをHomeに保存しました。':adviceReady?' このPDFの同じ、または新しいアドバイスは保存済みです。':' 未選択の新規明細があるため、アドバイスは保存していません。';
 }
 function splitCsvLine(line){
   const out=[]; let cur='', inQ=false;
@@ -1474,14 +1848,21 @@ function renderFixed(){
 }
 
 /* ---------- 収入 ---------- */
+function incomeRecordValues(values){
+  const month=String(values.month||''), label=String(values.label||'').trim(), amount=Number(values.amount);
+  if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month) || !validImportDate(month+'-01')) throw Error('正しい月を入力してください。');
+  if(!label) throw Error('収入の内容を入力してください。');
+  if(!Number.isSafeInteger(amount) || amount===0) throw Error('金額は0以外の整数で入力してください。');
+  return {month,label,amount};
+}
 function renderIncome(){
   const el = document.getElementById('tab-income');
   const months = [...new Set(state.incomes.map(i=>i.month))].sort().reverse();
-  const nowMonth = new Date().toISOString().slice(0,7);
-  const rows = state.incomes.sort((a,b)=>a.month<b.month?1:-1).map(i=>`
-    <tr data-id="${i.id}">
-      <td class="num">${i.month}</td><td>${esc(i.label)}</td><td class="r num">${yen(i.amount)}</td>
-      <td><button class="btn small incdel">×</button></td>
+  const nowMonth = monthKey();
+  const rows = state.incomes.slice().sort((a,b)=>a.month<b.month?1:a.month>b.month?-1:0).map(i=>`
+    <tr data-id="${esc(i.id)}">
+      <td class="num">${esc(i.month)}</td><td class="income-label">${esc(i.label)}</td><td class="r num">${yen(i.amount)}</td>
+      <td class="record-actions"><button class="btn small incedit" aria-label="${esc(i.label)}を編集">編集</button> <button class="btn small incdel" aria-label="${esc(i.label)}を削除">削除</button></td>
     </tr>`).join('');
   const monthTotals = months.map(m=>{
     const tot = state.incomes.filter(i=>i.month===m).reduce((s,i)=>s+i.amount,0);
@@ -1498,31 +1879,49 @@ function renderIncome(){
   <div class="card">
     <h2>収入の記録</h2>
     <div class="row mb">
-      <input type="month" id="incMonth" value="${nowMonth}">
-      <input type="text" id="incLabel" placeholder="内容(給与、産業医、講演など)" style="flex:1; min-width:160px">
-      <input type="number" id="incAmount" placeholder="金額" style="width:120px">
+      <input type="month" id="incMonth" value="${nowMonth}" aria-label="収入の月">
+      <input type="text" id="incLabel" placeholder="内容(給与、産業医、講演など)" aria-label="収入の内容" style="flex:1; min-width:160px">
+      <input type="number" id="incAmount" placeholder="金額" aria-label="収入の金額" step="1" style="width:120px">
       <button class="btn primary" id="incAdd">追加</button>
     </div>
-    ${state.incomes.length?`<table><tr><th>月</th><th>内容</th><th class="r">金額</th><th></th></tr>${rows}</table>`:'<p class="muted">まだ収入の記録がありません。給与や副収入を月ごとに登録すると、ダッシュボードの収支メモに反映されます。</p>'}
+    ${state.incomes.length?`<table class="income-table"><thead><tr><th>月</th><th>内容</th><th class="r">金額</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>`:'<p class="muted">まだ収入の記録がありません。給与や副収入を月ごとに登録すると、ダッシュボードの収支メモに反映されます。</p>'}
   </div>
   ${months.length?`<div class="card"><h2>月別合計</h2><table><tr><th>月</th><th class="r">収入合計</th></tr>${monthTotals}</table></div>`:''}
   ${years.length?`<div class="card"><h2>年間合計</h2><table><tr><th>年</th><th class="r">収入合計</th><th class="r">月平均</th></tr>${yearTotals}</table></div>`:''}`;
   el.querySelector('#incAdd').onclick = ()=>{
-    const m = el.querySelector('#incMonth').value, l = el.querySelector('#incLabel').value.trim(), a = parseInt(el.querySelector('#incAmount').value);
-    if(!m||!l||!a){ alert('月・内容・金額を入力してください'); return; }
-    state.incomes.push({id:uid(), month:m, label:l, amount:a});
-    persist(); renderIncome();
+    let values;
+    try{ values=incomeRecordValues({month:el.querySelector('#incMonth').value,label:el.querySelector('#incLabel').value,amount:el.querySelector('#incAmount').value}); }
+    catch(error){ alert(error.message); return; }
+    const original=state.incomes, originalUpdatedAt=state.updatedAt;
+    state.incomes=[...original,{id:uid(),...values}];
+    if(!persist()){ state.incomes=original; rollbackUpdatedAt(originalUpdatedAt); return; }
+    renderIncome();
   };
-  el.querySelectorAll('.incdel').forEach(btn=>{
-    btn.onclick = e=>{
-      const id = e.target.closest('tr').dataset.id;
-      state.incomes = state.incomes.filter(x=>x.id!==id);
-      persist(); renderIncome();
-    };
+  el.querySelectorAll('tr[data-id]').forEach(tr=>{
+    const income=state.incomes.find(i=>i.id===tr.dataset.id);
+    tr.querySelector('.incdel').onclick=()=>deleteRecordWithUndo('incomes',income.id,income.label,'income');
+    tr.querySelector('.incedit').onclick=()=>openRecordEditor({
+      title:'収入を編集',
+      fields:[
+        {name:'month',label:'月',type:'month',value:income.month,required:true},
+        {name:'label',label:'内容',value:income.label,required:true},
+        {name:'amount',label:'金額（円）',type:'number',value:income.amount,step:1,required:true}
+      ],
+      onSave:values=>saveRecordPatch('incomes',income.id,incomeRecordValues(values),'income')
+    });
   });
 }
 
 /* ---------- Todo ---------- */
+function todoRecordValues(values){
+  const text=String(values.text||'').trim(), due=String(values.due||'').trim();
+  if(!text) throw Error('やることの内容を入力してください。');
+  if(due && !validImportDate(due)) throw Error('正しい期限の日付を入力してください。');
+  return {text,due:due||null};
+}
+function localRecordDate(date=new Date()){
+  return date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+}
 function todoStatus(t){
   if(t.done) return 'done';
   if(!t.due) return 'nodue';
@@ -1549,53 +1948,52 @@ function renderTodo(){
     if(s==='soon') return '<span class="pill seiiki">まもなく</span>';
     return '';
   };
-  const dueLabel = t => t.due ? `<span class="num muted" style="font-size:12px; white-space:nowrap">${t.due.slice(5).replace('-','/')}まで</span>` : '';
-  const row = t => `<tr data-id="${t.id}">
-    <td style="width:28px"><input type="checkbox" class="tdDone" ${t.done?'checked':''}></td>
-    <td style="${t.done?'text-decoration:line-through; color:var(--faint);':''}">${esc(t.text)} ${t.done?'':badge(t)}</td>
-    <td class="r">${dueLabel(t)}</td>
-    <td style="white-space:nowrap"><button class="btn small tdEdit">編集</button> <button class="btn small tdDel">×</button></td>
+  const dueLabel = t => t.due ? `<time class="num muted" datetime="${esc(t.due)}" style="font-size:12px; white-space:nowrap">${esc(t.due.replace(/-/g,'/'))}まで</time>` : '<span class="muted">期限なし</span>';
+  const row = t => `<tr data-id="${esc(t.id)}">
+    <td style="width:28px"><input type="checkbox" class="tdDone" aria-label="${esc(t.text)}を${t.done?'未完了':'完了'}にする" ${t.done?'checked':''}></td>
+    <td class="todo-text" style="${t.done?'text-decoration:line-through; color:var(--faint);':''}">${esc(t.text)} ${t.done?'':badge(t)}</td>
+    <td class="r todo-due">${dueLabel(t)}</td>
+    <td class="record-actions"><button class="btn small tdEdit" aria-label="${esc(t.text)}を編集">編集</button> <button class="btn small tdDel" aria-label="${esc(t.text)}を削除">削除</button></td>
   </tr>`;
   el.innerHTML = `
   <div class="card">
     <h2>やることリスト <span class="hint">「いつまでに買う」「手続きする」などお金まわりのタスク管理</span></h2>
     <div class="row mb">
-      <input type="text" id="tdText" placeholder="例: 7月中にエニタイム解約の電話" style="flex:1; min-width:180px">
-      <input type="date" id="tdDue" title="期限(任意)">
+      <input type="text" id="tdText" placeholder="例: 利用していないサービスを見直す" aria-label="やることの内容" style="flex:1; min-width:180px">
+      <input type="date" id="tdDue" aria-label="期限（任意）" title="期限(任意)">
       <button class="btn primary" id="tdAdd">追加</button>
     </div>
-    ${undone.length?`<table>${undone.map(row).join('')}</table>`:'<p class="muted">未完了のタスクはありません。</p>'}
+    ${undone.length?`<table class="todo-table" aria-label="未完了のやること"><tbody>${undone.map(row).join('')}</tbody></table>`:'<p class="muted">未完了のタスクはありません。</p>'}
   </div>
   ${done.length?`<div class="card">
     <h2>完了済み <span class="hint">${done.length}件</span></h2>
-    <table>${done.map(row).join('')}</table>
+    <table class="todo-table" aria-label="完了したやること"><tbody>${done.map(row).join('')}</tbody></table>
   </div>`:''}`;
   el.querySelector('#tdAdd').onclick = ()=>{
-    const text = el.querySelector('#tdText').value.trim();
-    if(!text){ alert('内容を入力してください'); return; }
-    const due = el.querySelector('#tdDue').value || null;
-    state.todos.push({id:uid(), text, due, done:false});
-    persist(); renderTodo();
+    let values;
+    try{ values=todoRecordValues({text:el.querySelector('#tdText').value,due:el.querySelector('#tdDue').value}); }
+    catch(error){ alert(error.message); return; }
+    const original=state.todos, originalUpdatedAt=state.updatedAt;
+    state.todos=[...original,{id:uid(),...values,done:false}];
+    if(!persist()){ state.todos=original; rollbackUpdatedAt(originalUpdatedAt); return; }
+    renderTodo();
   };
   el.querySelector('#tdText').onkeydown = e=>{ if(e.key==='Enter') el.querySelector('#tdAdd').click(); };
   el.querySelectorAll('tr[data-id]').forEach(tr=>{
     const t = state.todos.find(x=>x.id===tr.dataset.id);
     tr.querySelector('.tdDone').onchange = e=>{
-      t.done = e.target.checked;
-      t.doneDate = t.done ? new Date().toISOString().slice(0,10) : null;
-      persist(); renderTodo();
+      const done=e.target.checked;
+      if(!saveRecordPatch('todos',t.id,{done,doneDate:done?localRecordDate():null},'todo')) e.target.checked=t.done;
     };
-    tr.querySelector('.tdDel').onclick = ()=>{
-      state.todos = state.todos.filter(x=>x.id!==t.id);
-      persist(); renderTodo();
-    };
-    tr.querySelector('.tdEdit').onclick = ()=>{
-      const text = prompt('内容', t.text); if(text===null) return;
-      const due = prompt('期限(YYYY-MM-DD形式、空欄で期限なし)', t.due||''); if(due===null) return;
-      t.text = text.trim() || t.text;
-      t.due = /^\d{4}-\d{2}-\d{2}$/.test(due.trim()) ? due.trim() : null;
-      persist(); renderTodo();
-    };
+    tr.querySelector('.tdDel').onclick=()=>deleteRecordWithUndo('todos',t.id,t.text,'todo');
+    tr.querySelector('.tdEdit').onclick=()=>openRecordEditor({
+      title:'やることを編集',
+      fields:[
+        {name:'text',label:'内容',value:t.text,required:true},
+        {name:'due',label:'期限（任意）',type:'date',value:t.due||''}
+      ],
+      onSave:values=>saveRecordPatch('todos',t.id,todoRecordValues(values),'todo')
+    });
   });
 }
 
