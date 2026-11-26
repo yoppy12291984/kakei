@@ -57,6 +57,14 @@ header .ver{font-size:11px; color:var(--faint); letter-spacing:.05em;}
 #themeBtn{color:var(--sub);}
 #themeBtn:hover{border-color:var(--gold); color:var(--ink);}
 #syncStatus{font-size:11.5px; color:var(--sub);}
+.data-status{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.data-status-copy{font-size:11.5px;color:var(--sub);line-height:1.8}
+.data-status-copy time{color:var(--ink)}
+.data-status button.btn{min-height:44px}
+#syncNotice{font-size:12px;color:var(--sub);flex-basis:100%;white-space:pre-wrap}
+#syncConflict{flex-basis:100%;border-top:1px solid var(--line);padding-top:10px;font-size:12px;white-space:pre-wrap}
+#syncConflict[hidden]{display:none}
+.app-release{display:block;margin-top:4px;font-size:10.5px;letter-spacing:0}
 
 nav{display:flex; gap:4px; background:var(--card); border-bottom:1px solid var(--line); padding:6px 12px 0; overflow-x:auto;}
 nav button{border:none; background:none; padding:9px 15px 11px; font-size:13.5px; font-family:inherit; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; letter-spacing:.04em; transition:color .15s;}
@@ -224,7 +232,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.8.9</span>
+  <span class="ver">Ver.3.8.10</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -237,6 +245,19 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <button data-tab="todo">To do</button>
 </nav>
 <main>
+  <aside class="data-status" aria-label="データの保存状況">
+    <div class="data-status-copy">
+      <div>データ更新 <time id="dataUpdatedAt">日時の記録なし</time></div>
+      <div>クラウド保存（この端末） <time id="cloudSavedAt">記録なし</time></div>
+    </div>
+    <button class="btn" id="quickCloudSave">クラウドに保存</button>
+    <p id="syncNotice" role="status" aria-live="polite"></p>
+    <div id="syncConflict" hidden>
+      <p id="syncConflictSummary"></p>
+      <button class="btn" id="syncReviewLoad">クラウドの内容を読み込む</button>
+      <button class="btn danger" id="syncReviewOverwrite">内容を確認して上書き</button>
+    </div>
+  </aside>
   <section id="tab-dash"></section>
   <section id="tab-tx" class="hidden"></section>
   <section id="tab-fixed" class="hidden"></section>
@@ -244,7 +265,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-todo" class="hidden"></section>
   <section id="tab-settings" class="hidden"></section>
 </main>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE</footer>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.8.10 · アプリ更新 <time datetime="2026-11-26T07:49:09.000Z">2026/11/26 16:49（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -331,19 +352,104 @@ const DEFAULT_STATE = {
 };
 
 /* ========== 状態管理 ========== */
+let localSaveFailed = false, localReadFailed = false, stateGeneration = 0;
+let syncBusy = false, syncStatusEpoch = 0;
+const syncMetaCache = new Map();
 let state = loadLocal();
 function loadLocal(){
   try{
     const raw = localStorage.getItem('kakeiOS');
     if(raw){ const s = JSON.parse(raw); return Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), s); }
-  }catch(e){ console.warn('localStorage読込失敗', e); }
+  }catch(e){ localReadFailed = true; console.warn('localStorage読込失敗', e); }
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
 }
-function persist(){
-  try{ localStorage.setItem('kakeiOS', JSON.stringify(state)); }catch(e){}
-  setSync('未同期の変更あり');
+function persist(options={}){
+  if(options.edited !== false) state.updatedAt = new Date().toISOString();
+  stateGeneration++;
+  try{
+    if(localReadFailed) throw Error('保存済みデータを読み込めていないため、上書きを停止しています。');
+    localStorage.setItem('kakeiOS', JSON.stringify(state));
+    localSaveFailed = false;
+  }catch(e){
+    localSaveFailed = true;
+    setSync(localReadFailed ? '保存済みデータを読み込めません。上書きを停止しています。' : 'この端末に保存できません。画面を閉じる前に設定からバックアップを保存してください。');
+    renderDataStatus();
+    return false;
+  }
+  setSync('この端末に保存済み・クラウド未反映');
+  renderDataStatus();
+  if(!syncBusy) void refreshSyncStatus();
+  return true;
 }
-function setSync(msg){ document.getElementById('syncStatus').textContent = msg; }
+function setSync(msg){
+  syncStatusEpoch++;
+  const compact = /できません|失敗|停止|別の内容/.test(msg) ? '保存状況を確認'
+    : /未反映/.test(msg) ? 'クラウド未反映'
+    : /確認中|保存中|読み込み中/.test(msg) ? 'クラウド確認中…'
+    : /前回確認したクラウドと一致/.test(msg) ? '前回同期と一致'
+    : /クラウドに保存しました|クラウド保存済み|クラウド保存は完了/.test(msg) ? 'クラウド保存済み'
+    : /クラウドを読み込みました|クラウド読込済み/.test(msg) ? 'クラウド読込済み'
+    : 'この端末に保存';
+  document.getElementById('syncStatus').textContent = compact;
+  document.getElementById('syncStatus').title = msg;
+  const note = document.getElementById('syncNotice');
+  if(note) note.textContent = msg;
+}
+function syncMetaKey(url=state.settings.gasUrl){ return 'ledgers-sync-v1:' + encodeURIComponent((url||'').trim()); }
+function readSyncMeta(url=state.settings.gasUrl){
+  const key = syncMetaKey(url);
+  if(!syncMetaCache.has(key)){
+    let value = {};
+    try{ value = JSON.parse(localStorage.getItem(key)||'{}') || {}; }catch(_){}
+    syncMetaCache.set(key, value && typeof value==='object' && !Array.isArray(value) ? value : {});
+  }
+  return syncMetaCache.get(key);
+}
+function writeSyncMeta(meta, url=state.settings.gasUrl){
+  const key = syncMetaKey(url);
+  syncMetaCache.set(key, meta);
+  try{ localStorage.setItem(key, JSON.stringify(meta)); return true; }catch(_){ return false; }
+}
+function formatJst(value){
+  const d = new Date(value||'');
+  if(!Number.isFinite(d.getTime())) return '日時の記録なし';
+  return new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d) + '（日本時間）';
+}
+function renderDataStatus(){
+  const updated = document.getElementById('dataUpdatedAt');
+  const saved = document.getElementById('cloudSavedAt');
+  if(updated){ updated.textContent = formatJst(state.updatedAt); updated.dateTime = state.updatedAt || ''; }
+  const meta = readSyncMeta();
+  if(saved){ saved.textContent = meta.lastCloudSavedAt ? formatJst(meta.lastCloudSavedAt) : '記録なし'; saved.dateTime = meta.lastCloudSavedAt || ''; }
+}
+function stableJson(value){
+  if(Array.isArray(value)) return '['+value.map(v=>stableJson(v)??'null').join(',')+']';
+  if(value && typeof value==='object') return '{'+Object.keys(value).sort().filter(k=>value[k]!==undefined).map(k=>JSON.stringify(k)+':'+stableJson(value[k])).join(',')+'}';
+  return JSON.stringify(value);
+}
+async function stateFingerprint(value){
+  const normalized = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), JSON.parse(JSON.stringify(value)));
+  normalized.settings = Object.assign({}, DEFAULT_STATE.settings, normalized.settings);
+  delete normalized.settings.gasUrl;
+  delete normalized.updatedAt;
+  const bytes = new TextEncoder().encode(stableJson(normalized));
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function refreshSyncStatus(){
+  renderDataStatus();
+  if(syncBusy) return;
+  if(localReadFailed){ setSync('保存済みデータを読み込めません。上書きを停止しています。'); return; }
+  if(localSaveFailed){ setSync('この端末に保存できません。設定からバックアップを保存してください。'); return; }
+  if(!state.settings.gasUrl){ setSync('この端末に保存済み・クラウド接続先は未設定'); return; }
+  const epoch = syncStatusEpoch, meta = readSyncMeta();
+  if(!meta.baselineFingerprint){ setSync('この端末に保存済み・クラウドとの一致は未確認'); return; }
+  try{
+    const fingerprint = await stateFingerprint(state);
+    if(syncBusy || epoch!==syncStatusEpoch) return;
+    setSync(fingerprint===meta.baselineFingerprint ? 'この端末に保存済み・前回確認したクラウドと一致' : 'この端末に保存済み・クラウド未反映');
+  }catch(_){ if(epoch===syncStatusEpoch) setSync('この端末に保存済み・クラウドとの比較は未確認'); }
+}
 
 /* ========== ユーティリティ ========== */
 function yen(n){ return (n<0?'-':'') + Math.abs(Math.round(n)).toLocaleString() + '円'; }
@@ -352,7 +458,7 @@ function cycleOf(dateStr){
   if(!state.settings.cycleMode) return dateStr.slice(0,7);
   const d = new Date(dateStr + 'T00:00:00');
   if(isNaN(d)) return dateStr.slice(0,7);
-  if(d.getDate() >= 22) d.setMonth(d.getMonth()+1);
+  if(d.getDate() >= 22){ d.setDate(1); d.setMonth(d.getMonth()+1); }
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
 }
 function currentCycle(){
@@ -429,9 +535,7 @@ function ensureRecurringTransactions(){
       ym = addMonthsKey(ym, 1);
     }
   });
-  if(changed){
-    try{ localStorage.setItem('kakeiOS', JSON.stringify(state)); }catch(e){}
-  }
+  if(changed) persist();
   return changed;
 }
 
@@ -850,6 +954,8 @@ function renderDash(){
 
 /* ---------- 明細 ---------- */
 let txMonth = '';
+let importPreview = null;
+let importRequest = 0;
 function renderTx(){
   ensureRecurringTransactions();
   const el = document.getElementById('tab-tx');
@@ -870,14 +976,16 @@ function renderTx(){
 
   el.innerHTML = `
   <div class="card">
-    <h2>アメックス明細の取り込み</h2>
-    <p class="muted mb">アメックス会員サイトからダウンロードしたCSVを選択するか、明細テキストを貼り付けてください。店名から自動でカテゴリ分類されます。</p>
+    <h2>CSV・Codexから明細を取り込む</h2>
+    <p class="muted mb">PDFはCodexに渡して「Ledgersに取り込んで」と依頼できます。CSVやCodexが用意した明細は、ここで内容を確認してから追加できます。</p>
     <div class="row mb">
-      <input type="file" id="csvFile" accept=".csv,.txt">
-      <button class="btn primary" id="importBtn">貼り付けテキストを取り込む</button>
+      <input type="file" id="csvFile" accept=".csv,.txt,.json" aria-label="明細ファイルを選択">
     </div>
-    <textarea id="csvPaste" placeholder="例:&#10;2026/06/16,東京ディズニーリゾート,337200&#10;ご利用日,ご利用店名,ご利用金額 のCSVヘッダー付きでもOK"></textarea>
-    <p class="muted mt" id="importMsg"></p>
+    <label for="csvPaste" class="muted">CSV・Codexが用意した明細</label>
+    <textarea id="csvPaste" placeholder="例:&#10;2026/06/16,お店,1200&#10;Codexが用意した明細も貼り付けられます。"></textarea>
+    <button class="btn primary mt" id="importBtn">内容を確認する</button>
+    <p class="muted mt" id="importMsg" role="status" aria-live="polite"></p>
+    <div id="importPreview"></div>
   </div>
   <div class="card">
     <h2>予定支出(未来枠) <span class="hint">まだ確定していない将来の支出。ダッシュボードに薄い色で反映されます</span></h2>
@@ -923,7 +1031,8 @@ function renderTx(){
   el.querySelector('#csvFile').onchange = e=>{
     const f = e.target.files[0]; if(!f) return;
     const reader = new FileReader();
-    reader.onload = ev=>importCsvText(ev.target.result);
+    reader.onload = ev=>{ el.querySelector('#csvPaste').value = ev.target.result; importCsvText(ev.target.result); };
+    reader.onerror = ()=>{ el.querySelector('#importMsg').textContent = 'ファイルを読み込めませんでした。もう一度選択してください。'; };
     reader.readAsText(f);
   };
   el.querySelector('#manAdd').onclick = ()=>{
@@ -1002,82 +1111,205 @@ function renderTx(){
       if(key){ state.merchantMap[key.trim()] = t.category; persist(); alert(`「${key.trim()}」→「${t.category}」を登録しました。今後の取り込みで自動分類されます。`); }
     };
   });
+  renderImportPreview();
 }
 
-function importCsvText(text){
-  if(!text || !text.trim()){ document.getElementById('importMsg').textContent = 'テキストが空です。'; return; }
-  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
-  let added=0, skipped=0;
-  let amexCols = null; // アメックス公式CSVの列位置
-  const existing = new Set(state.transactions.map(t=>t.date+'|'+t.merchant+'|'+t.amount));
-  for(const line of lines){
-    // ヘッダー検出
-    if(/ご利用日/.test(line) && /ご利用内容/.test(line)){
-      const h = splitCsvLine(line);
-      amexCols = {
-        date: h.findIndex(c=>c.includes('ご利用日')),
-        merchant: h.findIndex(c=>c.includes('ご利用内容')),
-        amount: h.findIndex(c=>c.includes('金額') && !c.includes('海外'))
-      };
-      continue;
+// 入力の解析・重複判定と保存を分離し、確認前には明細を変更しない。
+function importMerchantKey(merchant){ return cleanMerchant(merchant).replace(/\s*\(\d+件目\)$/, '').trim(); }
+function importRowKey(row){ return JSON.stringify([row.date, importMerchantKey(row.merchant), row.amount]); }
+function validImportDate(value){
+  if(typeof value!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [y,m,d] = value.split('-').map(Number);
+  if(y<1900 || y>9999 || m<1 || m>12 || d<1) return false;
+  return d<=new Date(Date.UTC(y,m,0)).getUTCDate();
+}
+function importAmount(value){
+  const s = String(value).normalize('NFKC').replace(/[¥￥,円\s]/g,'');
+  if(!/^-?\d+$/.test(s)) return null;
+  const n = Number(s);
+  return Number.isSafeInteger(n) ? n : null;
+}
+async function importHash(value){
+  if(!globalThis.crypto?.subtle) throw Error('この環境ではPDF明細を確認できません。公開アプリをHTTPSで開いてください。');
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function parseImportText(text){
+  const source = String(text||'').replace(/^\uFEFF/,'').trim();
+  if(!source) throw Error('明細テキストを入力してください。');
+  if(source.length>5000000) throw Error('明細が大きすぎます。ファイルを分けてください。');
+  const result = {kind:'csv', sourceName:'CSV・明細テキスト', rows:[], errors:[], ignored:0, fatal:false};
+  if(/^[\[{]/.test(source)){
+    let data;
+    try{ data = JSON.parse(source); }catch(e){ throw Error('JSONを読み取れません。Codexに明細データの作り直しを依頼してください。'); }
+    if(!data || Array.isArray(data) || data.format!=='ledgers-import-v1') throw Error('Codex用明細の形式はledgers-import-v1です。');
+    if(typeof data.sourceDigest!=='string' || !/^[a-f0-9]{64}$/.test(data.sourceDigest)) throw Error('PDFの照合情報（SHA-256）が正しくありません。');
+    if(typeof data.sourceName!=='string' || !data.sourceName.trim() || data.sourceName.length>512) throw Error('PDFのファイル名を確認してください。');
+    if(!Array.isArray(data.transactions) || !data.transactions.length || data.transactions.length>10000) throw Error('明細は1〜10,000件の配列で指定してください。');
+    result.kind='pdf'; result.sourceName=data.sourceName.trim();
+    const counts = new Map();
+    for(let index=0; index<data.transactions.length; index++){
+      const t = data.transactions[index];
+      const problems = [];
+      if(!t || typeof t!=='object' || Array.isArray(t)){ result.errors.push(`${index+1}件目: 明細の形式が正しくありません。`); continue; }
+      if(!validImportDate(t.date)) problems.push('実在する日付をYYYY-MM-DDで指定');
+      if(typeof t.merchant!=='string' || !t.merchant.trim() || t.merchant.length>500) problems.push('店名を1〜500文字で指定');
+      if(!Number.isSafeInteger(t.amount) || t.amount<=0) problems.push('金額を正の整数で指定');
+      if(t.category!==undefined && (typeof t.category!=='string' || !t.category.trim() || t.category.length>120)) problems.push('カテゴリ名を文字列で指定');
+      if(problems.length){ result.errors.push(`${index+1}件目: ${problems.join('、')}してください。`); continue; }
+      const row = {date:t.date, merchant:cleanMerchant(t.merchant), amount:t.amount, category:t.category?.trim(), line:index+1};
+      const key = importRowKey(row);
+      const occurrence = (counts.get(key)||0)+1; counts.set(key,occurrence);
+      row.id = 'pdf:'+data.sourceDigest+':'+await importHash(key+'|'+occurrence);
+      result.rows.push(row);
     }
-    if(/日付.*金額/.test(line)) continue;
-    const cols = splitCsvLine(line);
-    let dateStr, merchant, amount;
-    if(amexCols && amexCols.date>=0 && amexCols.amount>=0){
-      // アメックス公式CSVモード: 列指定で確実に読む
-      dateStr = normDate(cols[amexCols.date]||'');
-      if(!dateStr){ skipped++; continue; }
-      amount = parseInt((cols[amexCols.amount]||'').replace(/[¥,円\s"]/g,''));
-      if(isNaN(amount) || amount<=0){ skipped++; continue; } // 支払・返金は除外
-      merchant = cleanMerchant(cols[amexCols.merchant]||'不明');
-    } else {
-      // 汎用モード(日付,店名,金額 の3列形式など)
-      if(cols.length < 3){ skipped++; continue; }
-      dateStr = normDate(cols[0]);
-      if(!dateStr){ skipped++; continue; }
-      amount = null; let amountIdx = -1;
-      for(let i=cols.length-1;i>=1;i--){
-        const v = parseInt(cols[i].replace(/[¥,円\s"]/g,''));
-        if(!isNaN(v) && v!==0){ amount=v; amountIdx=i; break; }
+    result.fatal = result.errors.length>0; // JSONは全行を検証してから一括で受け付ける。
+  }else{
+    const lines = source.split(/\r?\n/);
+    if(lines.length>12000) throw Error('明細の行数が多すぎます。ファイルを分けてください。');
+    let columns = null;
+    for(let index=0; index<lines.length; index++){
+      const line=lines[index].trim(); if(!line) continue;
+      let cols;
+      try{ cols=splitCsvLine(line); }catch(e){ result.errors.push(`${index+1}行目: 引用符が閉じていません。`); continue; }
+      const dateCol=cols.findIndex(c=>/^(ご利用日|利用日|日付)$/.test(c));
+      const merchantCol=cols.findIndex(c=>/ご利用内容|ご利用店名|利用店名|店名|内容/.test(c));
+      const amountCol=cols.findIndex(c=>/金額/.test(c) && !/海外/.test(c));
+      if(dateCol>=0 && amountCol>=0){
+        if(merchantCol<0){ result.errors.push(`${index+1}行目: 店名・内容の列がありません。`); result.fatal=true; }
+        columns={date:dateCol,merchant:merchantCol,amount:amountCol}; continue;
       }
-      if(amount===null || amount<0){ skipped++; continue; }
-      merchant = cols.slice(1,amountIdx).join(' ').replace(/"/g,'').trim() || '不明';
+      if(cols.length<3){ result.errors.push(`${index+1}行目: 日付・店名・金額の3列が必要です。`); continue; }
+      const date=normDate(cols[columns?columns.date:0]||'');
+      let amountIndex=columns?columns.amount:cols.length-1;
+      // 汎用形式は末尾の金額列を利用。途中の数字を金額として推測しない。
+      const amount=importAmount(cols[amountIndex]||'');
+      const merchantText=columns ? (cols[columns.merchant]||'') : cols.slice(1,amountIndex).join(' ');
+      const merchant=cleanMerchant(merchantText);
+      if(!date || amount===null || !merchantText.trim()){ result.errors.push(`${index+1}行目: ${!date?'日付':amount===null?'金額':'店名'}を確認してください。`); continue; }
+      if(amount<=0){ result.ignored++; continue; }
+      result.rows.push({date,merchant,amount,line:index+1});
     }
-    // 同日・同店名・同金額はアメックスCSVでは別取引の可能性が高いため連番を付けて取り込む
-    let key = dateStr+'|'+merchant+'|'+amount;
-    if(existing.has(key)){
-      if(amexCols){
-        let n = 2;
-        while(existing.has(dateStr+'|'+merchant+' ('+n+'件目)|'+amount)) n++;
-        merchant = merchant+' ('+n+'件目)';
-        key = dateStr+'|'+merchant+'|'+amount;
-      } else { skipped++; continue; } // 汎用モードは従来通り重複スキップ(再取り込み対策)
-    }
-    existing.add(key);
-    state.transactions.push({id:uid(), date:dateStr, merchant, amount, category:categorize(merchant), src:'csv'});
-    added++;
   }
-  persist();
-  if(added>0){ txMonth=''; renderTx(); }
-  document.getElementById('importMsg').textContent = `${added}件を取り込みました(スキップ ${skipped}件: 支払・返金・重複・解析不能)。`;
+  if(!Number.isSafeInteger(result.rows.reduce((sum,r)=>sum+r.amount,0))) throw Error('明細の合計金額が大きすぎます。');
+  return result;
+}
+function classifyImportRows(parsed, transactions){
+  const ids = new Set(transactions.map(t=>t.id));
+  const exactIds = new Set(parsed.rows.filter(r=>r.id && ids.has(r.id)).map(r=>r.id));
+  const available = new Map();
+  transactions.forEach(t=>{
+    if(exactIds.has(t.id)) return; // 同じPDFのID一致を先に確定し、他行の一致に再利用しない。
+    const key=importRowKey(t); available.set(key,(available.get(key)||0)+1);
+  });
+  return parsed.rows.map((row,index)=>{
+    let status='new';
+    if(row.id && ids.has(row.id)) status='imported';
+    else{
+      const key=importRowKey(row), count=available.get(key)||0;
+      if(count>0){ status='overlap'; available.set(key,count-1); }
+    }
+    return {...row,index,status};
+  });
+}
+async function importCsvText(text){
+  const request=++importRequest;
+  importPreview=null; renderImportPreview();
+  document.getElementById('importMsg').textContent='明細を確認しています…';
+  try{
+    const parsed=await parseImportText(text);
+    if(request!==importRequest) return;
+    const rows=classifyImportRows(parsed,state.transactions);
+    importPreview={parsed,rows,selected:new Set(parsed.fatal?[]:rows.filter(r=>r.status==='new').map(r=>r.index))};
+    document.getElementById('importMsg').textContent=parsed.fatal?'入力内容にエラーがあります。修正するまで取り込めません。':'まだ保存していません。追加する明細を確認してください。';
+    renderImportPreview();
+  }catch(e){ if(request===importRequest) document.getElementById('importMsg').textContent=e.message; }
+}
+function renderImportPreview(){
+  const host=document.getElementById('importPreview'); if(!host) return;
+  if(!importPreview){ host.innerHTML=''; return; }
+  const {parsed,rows,selected}=importPreview;
+  const imported=rows.filter(r=>r.status==='imported').length;
+  const overlaps=rows.filter(r=>r.status==='overlap').length;
+  const selectedRows=rows.filter(r=>selected.has(r.index));
+  host.innerHTML=`<div class="mt" style="border-top:1px solid var(--line);padding-top:14px">
+    <h2>取り込み前の確認 <span class="hint">${esc(parsed.sourceName)}</span></h2>
+    <p class="muted">有効な明細 ${rows.length}件・合計 ${yen(rows.reduce((sum,r)=>sum+r.amount,0))}<br>同じPDFから取込済み ${imported}件 / 既存明細との一致候補 ${overlaps}件 / 支払・返金・0円を除外 ${parsed.ignored}件 / 入力エラー ${parsed.errors.length}件</p>
+    ${overlaps?'<p class="muted mt">一致候補は選択していません。日付・店名・金額が同じ別の支出であると確認できた場合だけ、チェックを付けてください。</p>':''}
+    ${parsed.errors.length?`<details class="mt" open><summary>入力エラーを確認（${parsed.errors.length}件）</summary><ul style="padding-left:22px">${parsed.errors.slice(0,50).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>${parsed.errors.length>50?'<p class="muted">先頭50件を表示しています。</p>':''}</details>`:''}
+    ${rows.length?`<div class="mt" style="max-height:420px;overflow:auto">${rows.map(r=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)">
+      <input type="checkbox" data-import-index="${r.index}" ${selected.has(r.index)?'checked':''} ${r.status==='imported'||parsed.fatal?'disabled':''} style="min-width:22px;min-height:22px;margin-top:3px" aria-label="${esc(r.merchant)} ${yen(r.amount)}を追加">
+      <span style="flex:1;min-width:0;overflow-wrap:anywhere"><strong>${esc(r.merchant)}</strong> <span class="num">${yen(r.amount)}</span><br><span class="muted">${r.date}・${r.status==='imported'?'取込済み':r.status==='overlap'?'既存と一致・要確認':'追加候補'}</span></span>
+    </label>`).join('')}</div>`:''}
+    <p class="mt" id="importSelectedSummary">追加する明細 ${selectedRows.length}件・${yen(selectedRows.reduce((sum,r)=>sum+r.amount,0))}</p>
+    <div class="row mt"><button class="btn primary" id="importConfirm" ${parsed.fatal||!selectedRows.length?'disabled':''}>選択した明細を取り込む</button><button class="btn" id="importCancel">キャンセル</button></div>
+  </div>`;
+  host.querySelectorAll('[data-import-index]').forEach(input=>{
+    input.onchange=()=>{
+      const index=Number(input.dataset.importIndex);
+      if(input.checked) selected.add(index); else selected.delete(index);
+      const chosen=rows.filter(r=>selected.has(r.index));
+      document.getElementById('importSelectedSummary').textContent=`追加する明細 ${chosen.length}件・${yen(chosen.reduce((sum,r)=>sum+r.amount,0))}`;
+      document.getElementById('importConfirm').disabled=parsed.fatal||!chosen.length;
+    };
+  });
+  document.getElementById('importCancel').onclick=()=>{ ++importRequest; importPreview=null; renderImportPreview(); document.getElementById('importMsg').textContent='取り込みをキャンセルしました。明細は変更していません。'; };
+  document.getElementById('importConfirm').onclick=confirmImportPreview;
+}
+function confirmImportPreview(){
+  if(!importPreview || importPreview.parsed.fatal) return;
+  const {parsed,rows,selected}=importPreview;
+  const fresh=classifyImportRows(parsed,state.transactions);
+  // 確認中に別の操作や同期で明細が増えたら、新しい一致候補を再確認する。
+  if(fresh.some(r=>selected.has(r.index) && r.status==='overlap' && rows[r.index].status==='new')){
+    importPreview.rows=fresh;
+    importPreview.selected=new Set(fresh.filter(r=>selected.has(r.index) && r.status==='new').map(r=>r.index));
+    renderImportPreview();
+    document.getElementById('importMsg').textContent='確認中に明細が更新されました。一致候補を選択から外したので、もう一度確認してください。';
+    return;
+  }
+  const additions=fresh.filter(r=>selected.has(r.index) && r.status!=='imported').map(r=>({
+    id:r.id||uid(), date:r.date, merchant:r.merchant, amount:r.amount,
+    category:r.category && catNames().includes(r.category)?r.category:categorize(r.merchant), src:'csv'
+  }));
+  const ignored=parsed.ignored, errors=parsed.errors.length;
+  if(additions.length){
+    const before=state.transactions, beforeUpdatedAt=state.updatedAt;
+    state.transactions=before.concat(additions);
+    if(persist()===false){
+      state.transactions=before;
+      if(beforeUpdatedAt===undefined) delete state.updatedAt; else state.updatedAt=beforeUpdatedAt;
+      document.getElementById('importMsg').textContent='端末に保存できなかったため、取り込みを完了していません。保存領域を確認して、もう一度お試しください。';
+      return;
+    }
+    txMonth=cycleOf(additions[additions.length-1].date);
+  }
+  importPreview=null; ++importRequest;
+  renderTx();
+  document.getElementById('importMsg').textContent=additions.length
+    ? `${additions.length}件・${yen(additions.reduce((sum,r)=>sum+r.amount,0))}を追加しました。未選択・取込済み ${fresh.length-additions.length}件、支払・返金等 ${ignored}件、入力エラー ${errors}件は追加していません。`
+    : '追加する明細はありません。取込済みの明細は追加していません。';
 }
 function splitCsvLine(line){
   const out=[]; let cur='', inQ=false;
-  for(const ch of line){
-    if(ch==='"'){ inQ=!inQ; continue; }
+  for(let i=0;i<line.length;i++){
+    const ch=line[i];
+    if(ch==='"'){
+      if(inQ && line[i+1]==='"'){ cur+='"'; i++; }else inQ=!inQ;
+      continue;
+    }
     if(ch===',' && !inQ){ out.push(cur); cur=''; } else cur+=ch;
   }
+  if(inQ) throw Error('CSV引用符が閉じていません');
   out.push(cur);
   return out.map(s=>s.trim());
 }
 function normDate(s){
-  s = s.replace(/"/g,'').trim();
-  let m = s.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
-  if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
-  m = s.match(/^(\d{1,2})[\/月](\d{1,2})/);
-  if(m){ const y = new Date().getFullYear(); return y+'-'+m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0'); }
-  return null;
+  s = String(s).normalize('NFKC').replace(/"/g,'').trim();
+  let m=s.match(/^(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})日?$/);
+  if(!m){ const short=s.match(/^(\d{1,2})[\/月](\d{1,2})日?$/); if(short) m=['',String(new Date().getFullYear()),short[1],short[2]]; }
+  const value=m?m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0'):null;
+  return validImportDate(value)?value:null;
 }
 
 /* ---------- 固定費 ---------- */
@@ -1428,7 +1660,7 @@ function renderSettings(){
     <p class="muted mt">新カテゴリ名を入力した場合はカテゴリも同時に作成されます。明細をそのカテゴリに分類すると枠にカウントされます。</p>
   </div>
   <div class="card">
-    <h2>GAS同期 <span class="hint">GitHub Pagesに置いたときにGoogle Sheetsへ保存できます</span></h2>
+    <h2>クラウド保存 <span class="hint">端末間でデータを引き継ぎます</span></h2>
     <div class="row mb">
       <input type="text" id="setGas" value="${esc(s.gasUrl)}" placeholder="GASウェブアプリのURL(https://script.google.com/macros/s/.../exec)" style="flex:1; min-width:240px">
     </div>
@@ -1436,7 +1668,8 @@ function renderSettings(){
       <button class="btn primary" id="gasSave">クラウドに保存</button>
       <button class="btn" id="gasLoad">クラウドから読込</button>
     </div>
-    <p class="muted mt">※このプレビュー(Claude内)ではブラウザ保存のみ有効です。GitHub Pagesに配置後、code.gsをデプロイしてURLを設定してください。</p>
+    <p class="muted mt">変更はこの端末に自動保存されます。他の端末へ反映するには「クラウドに保存」を押してください。「クラウドから読込」は、この端末の内容をクラウドの内容に入れ替えます。保存前に別端末の更新を確認します。同時に複数端末から保存せず、端末を切り替えたら先に読み込んでください。</p>
+    <details class="mt"><summary class="muted">入れ替え前に退避したデータ</summary><p class="muted mt">直前の読み込み・上書きで退避した内容を、バックアップとして書き出せます。この端末にだけ保存されています。</p><div class="row mt"><button class="btn" id="syncRecoveryLocal">退避した端末データを出力</button><button class="btn" id="syncRecoveryCloud">退避したクラウドデータを出力</button></div></details>
   </div>
   <div class="card">
     <h2>カテゴリ管理 <span class="hint">「聖域」にチェックしたカテゴリは年間枠にカウントされ、経常支出から除外されます</span></h2>
@@ -1610,6 +1843,8 @@ function renderSettings(){
   });
   el.querySelector('#gasSave').onclick = gasSave;
   el.querySelector('#gasLoad').onclick = gasLoad;
+  el.querySelector('#syncRecoveryLocal').onclick = ()=>downloadSyncRecovery('local');
+  el.querySelector('#syncRecoveryCloud').onclick = ()=>downloadSyncRecovery('cloud');
   el.querySelector('#repBtn').onclick = ()=>{
     const r = el.querySelector('#repRange').value;
     download('ledgers-report-' + new Date().toISOString().slice(0,10) + '.md', buildReport(r), 'text/markdown');
@@ -1744,31 +1979,125 @@ function buildReport(range){
 }
 
 /* ---------- GAS同期 ---------- */
-async function gasSave(){
-  const url = state.settings.gasUrl;
-  if(!url){ alert('GASのURLを設定してください'); return; }
-  setSync('保存中…');
+function setSyncBusy(value){
+  syncBusy = value;
+  for(const id of ['quickCloudSave','gasSave','gasLoad','syncReviewLoad','syncReviewOverwrite']){
+    const button = document.getElementById(id);
+    if(button) button.disabled = value;
+  }
+}
+async function fetchCloudState(url){
+  const res = await fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now());
+  if(!res.ok) throw Error('クラウドへ接続できませんでした。');
+  const data = await res.json();
+  if(data && typeof data==='object' && !Array.isArray(data) && Object.keys(data).length===0) return null;
+  if(!data || typeof data!=='object' || Array.isArray(data) || !data.settings || typeof data.settings!=='object' || Array.isArray(data.settings)) throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
+  for(const key of ['transactions','fixed','incomes','history','categories','todos','plans','recurringSkips']){
+    if(data[key]!==undefined && !Array.isArray(data[key])) throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
+  }
+  return data;
+}
+function cloudDataSummary(data){
+  if(!data) return 'データなし';
+  return '明細 '+(data.transactions||[]).length+'件 / 更新 '+formatJst(data.updatedAt);
+}
+function createSyncRecovery(url, cloud, reason){
+  const recovery = {savedAt:new Date().toISOString(),reason,local:state,cloud};
+  try{ localStorage.setItem('ledgers-recovery-v1:'+encodeURIComponent(url), JSON.stringify(recovery)); }
+  catch(_){ throw Error('上書き前の退避を保存できません。設定からバックアップを書き出し、端末の空き容量を確認してください。'); }
+}
+function downloadSyncRecovery(source){
+  const url = (state.settings.gasUrl||'').trim();
+  let recovery;
+  try{ recovery = JSON.parse(localStorage.getItem('ledgers-recovery-v1:'+encodeURIComponent(url))||'null'); }catch(_){}
+  if(!recovery || !recovery[source]){ alert('この接続先の退避データはありません。'); return; }
+  download('ledgers-recovery-'+source+'.json',JSON.stringify(recovery[source],null,2),'application/json');
+}
+function showSyncConflict(cloud){
+  document.getElementById('syncConflictSummary').textContent = 'クラウドに別の内容があります。保存を止めています。\nこの端末：'+cloudDataSummary(state)+'\nクラウド：'+cloudDataSummary(cloud)+'\n先にどちらの内容を残すか確認してください。読み込み・上書き前には現在の内容を端末に退避します。';
+  document.getElementById('syncConflict').hidden = false;
+}
+async function gasSave(options={}){
+  if(syncBusy) return false;
+  const url = (state.settings.gasUrl||'').trim();
+  if(!url){ alert('設定でクラウド接続先を設定してください。'); return false; }
+  if(localReadFailed){ setSync('保存済みデータを読み込めないため、クラウド保存を停止しています。'); return false; }
+  setSyncBusy(true);
+  setSync('クラウドの更新を確認中…');
+  const generation = stateGeneration;
   try{
-    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain'}, body: JSON.stringify(state)});
-    await res.text();
-    setSync('保存済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
-  }catch(e){ setSync('保存失敗'); alert('保存に失敗しました: '+e.message); }
+    const cloud = await fetchCloudState(url);
+    const snapshot = JSON.parse(JSON.stringify(state));
+    const fingerprint = await stateFingerprint(snapshot);
+    const cloudFingerprint = cloud ? await stateFingerprint(cloud) : null;
+    const meta = readSyncMeta(url);
+    if(generation!==stateGeneration || url!==(state.settings.gasUrl||'').trim()) throw Error('確認中に内容が変わりました。もう一度「クラウドに保存」を押してください。');
+    const conflict = cloud && cloudFingerprint!==fingerprint && cloudFingerprint!==meta.baselineFingerprint;
+    if(conflict && options.force!==true){
+      showSyncConflict(cloud);
+      setSync('クラウドに別の内容があります。確認するまで保存しません。');
+      return false;
+    }
+    if(conflict){
+      const message = 'クラウドの内容を、この端末の内容で上書きします。\n\nこの端末：'+cloudDataSummary(snapshot)+'\nクラウド：'+cloudDataSummary(cloud)+'\n\n両方の内容をこの端末に退避してから上書きします。クラウド側だけの変更は反映されなくなります。続けますか？';
+      if(!confirm(message)){ setSync('クラウド保存を取り消しました。内容は変更していません。'); return false; }
+      createSyncRecovery(url, cloud, 'クラウド上書き前');
+    }
+    setSync('クラウドへ保存中…');
+    const res = await fetch(url, {method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(snapshot)});
+    const result = await res.json();
+    if(!res.ok || result.ok!==true) throw Error(result.error||'保存完了を確認できませんでした。');
+    const stored = writeSyncMeta(Object.assign({},meta,{baselineFingerprint:fingerprint,lastCloudSavedAt:new Date().toISOString()}),url);
+    document.getElementById('syncConflict').hidden = true;
+    renderDataStatus();
+    const changed = generation!==stateGeneration;
+    setSync(!stored ? 'クラウド保存は完了しました。端末に同期履歴を保存できません。' : localSaveFailed ? 'クラウド保存済み・この端末への保存は失敗しています。' : changed ? 'クラウド保存済み・保存中の追加変更はまだ未反映です。' : 'クラウドに保存しました '+formatJst(readSyncMeta(url).lastCloudSavedAt));
+    return true;
+  }catch(e){
+    setSync('クラウド保存の完了を確認できません。'+e.message);
+    return false;
+  }finally{ setSyncBusy(false); }
 }
 async function gasLoad(){
-  const url = state.settings.gasUrl;
-  if(!url){ alert('GASのURLを設定してください'); return; }
-  setSync('読込中…');
+  if(syncBusy) return false;
+  const url = (state.settings.gasUrl||'').trim();
+  if(!url){ alert('設定でクラウド接続先を設定してください。'); return false; }
+  if(localReadFailed){ setSync('保存済みデータを読み込めないため、クラウド読込を停止しています。'); return false; }
+  setSyncBusy(true);
+  setSync('クラウドを読み込み中…');
+  const generation = stateGeneration;
   try{
-    const res = await fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now());
-    const data = await res.json();
-    if(data && typeof data === 'object' && data.settings){
-      const gasUrl = state.settings.gasUrl;
-      state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), data);
-      state.settings.gasUrl = gasUrl;
-      ensureRecurringTransactions(); persist(); render();
-      setSync('読込済み ' + new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}));
-    } else { setSync('クラウドにデータなし'); }
-  }catch(e){ setSync('読込失敗'); alert('読込に失敗しました: '+e.message); }
+    const data = await fetchCloudState(url);
+    if(!data){ setSync('クラウドにデータはありません。この端末の内容を維持しました。'); return false; }
+    const fingerprint = await stateFingerprint(data);
+    const localFingerprint = await stateFingerprint(state);
+    const emptyFingerprint = await stateFingerprint(DEFAULT_STATE);
+    const meta = readSyncMeta(url);
+    if(generation!==stateGeneration || url!==(state.settings.gasUrl||'').trim()) throw Error('読込中に端末の内容が変わりました。もう一度読み込んでください。');
+    const different = localFingerprint!==fingerprint;
+    const dirty = meta.baselineFingerprint ? localFingerprint!==meta.baselineFingerprint : localFingerprint!==emptyFingerprint;
+    if(different && dirty && !confirm('この端末にクラウドへ未反映、または同期状況を確認できない内容があります。\n\nこの端末：'+cloudDataSummary(state)+'\nクラウド：'+cloudDataSummary(data)+'\n\n現在の内容をこの端末に退避してから、クラウドの内容に入れ替えます。続けますか？')){
+      setSync('クラウド読込を取り消しました。この端末の内容を維持しました。');
+      return false;
+    }
+    if(different && localFingerprint!==emptyFingerprint) createSyncRecovery(url, data, 'クラウド読込前');
+    const previous = state;
+    state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)),data);
+    state.settings = Object.assign({},state.settings,{gasUrl:url});
+    if(!persist({edited:false})){
+      state = previous;
+      renderDataStatus();
+      throw Error('この端末へ保存できないため、読込前の内容を維持しました。');
+    }
+    const stored = writeSyncMeta(Object.assign({},meta,{baselineFingerprint:fingerprint,lastCloudLoadedAt:new Date().toISOString()}),url);
+    const added = ensureRecurringTransactions();
+    applyTheme(); render();
+    document.getElementById('syncConflict').hidden = true;
+    renderDataStatus();
+    setSync(!stored ? 'クラウドを読み込みました。端末に同期履歴を保存できません。' : localSaveFailed ? '読込後の変更をこの端末に保存できません。バックアップを保存してください。' : added ? 'クラウド読込済み・追加された定期明細はクラウド未反映です。' : 'クラウドを読み込みました '+formatJst(readSyncMeta(url).lastCloudLoadedAt));
+    return true;
+  }catch(e){ setSync('クラウド読込は完了していません。'+e.message); return false; }
+  finally{ setSyncBusy(false); }
 }
 
 /* ---------- テーマ ---------- */
@@ -1837,7 +2166,10 @@ function activeTabName(){
 applyTheme();
 ensureRecurringTransactions();
 render();
-setSync('ローカル保存モード');
+document.getElementById('quickCloudSave').onclick = ()=>gasSave();
+document.getElementById('syncReviewLoad').onclick = ()=>gasLoad();
+document.getElementById('syncReviewOverwrite').onclick = ()=>gasSave({force:true});
+void refreshSyncStatus();
 appTabPrefs.boot();
 </script>
 <script>window.SuiteDeviceConfig={app:"kakei",name:"Ledgers OS",settingsTarget:"#tab-settings",url:"https://script.google.com/macros/s/AKfycbwTcUYjxaPWYabs6rBR4tBZvr09aImo0xGst7nTptujEUA6JgxAfjtWZfpTomA2KAS3/exec",readUrl(){return (JSON.parse(localStorage.getItem("kakeiOS")||'{}').settings?.gasUrl);},ensureUrl(url){const s=JSON.parse(localStorage.getItem("kakeiOS")||'{}');s.settings=s.settings||{};if(!s.settings.gasUrl)s.settings.gasUrl=url;localStorage.setItem("kakeiOS",JSON.stringify(s));}};
