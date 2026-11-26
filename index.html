@@ -52,7 +52,7 @@ header{background:var(--card); border-bottom:1px solid var(--line); padding:13px
 .brand-copy{display:flex; flex-direction:column; justify-content:center; line-height:1;}
 .brand-name{font-family:'IBM Plex Mono',monospace; font-size:16px; font-weight:500; letter-spacing:.16em;}
 .brand-sub{margin-top:5px; font-size:8px; font-weight:500; color:var(--faint); letter-spacing:.19em; text-transform:uppercase; white-space:nowrap;}
-header .ver{font-size:11px; color:var(--faint); letter-spacing:.05em;}
+header .ver{font-size:11px;color:var(--sub);letter-spacing:.02em;white-space:nowrap;padding:3px 6px;border:1px solid var(--line);border-radius:6px;flex-shrink:0}
 #themeBtn{margin-left:auto; width:34px; height:34px; padding:0; border:1px solid var(--line); border-radius:50%; background:var(--card); cursor:pointer; font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; transition:all .15s;}
 #themeBtn{color:var(--sub);}
 #themeBtn:hover{border-color:var(--gold); color:var(--ink);}
@@ -150,7 +150,7 @@ main{max-width:960px; margin:0 auto; padding:22px 16px 80px;}
   .brand-mark{width:28px; height:28px; border-radius:8px;}
   .brand-name{font-size:15px;}
   .brand-sub{font-size:7px; letter-spacing:.14em;}
-  header .ver{display:none;}
+  header .ver{display:inline-block;font-size:10px;padding:3px 4px;}
 }
 
 .bignum{font-size:29px; font-weight:500; letter-spacing:-.01em;}
@@ -324,7 +324,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.9.3</span>
+  <span class="ver">Ver.3.10.0</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -340,9 +340,9 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <aside class="data-status" aria-label="データの保存状況">
     <div class="data-status-copy">
       <div>データ更新 <time id="dataUpdatedAt">日時の記録なし</time></div>
-      <div>クラウド保存（この端末） <time id="cloudSavedAt">記録なし</time></div>
+      <div>最終同期 <time id="cloudSavedAt">確認中</time></div>
     </div>
-    <button class="btn" id="quickCloudSave">クラウドに保存</button>
+    <button class="btn" id="quickCloudSave">今すぐ同期</button>
     <p id="syncNotice" role="status" aria-live="polite"></p>
     <div id="syncConflict" hidden>
       <p id="syncConflictSummary"></p>
@@ -358,7 +358,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-settings" class="hidden"></section>
 </main>
 <div class="undo-notice" id="recordUndoNotice" hidden><span id="recordUndoMessage" role="status" aria-live="polite"></span><button type="button" class="btn" id="recordUndoButton">元に戻す</button></div>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.9.3 · アプリ更新 <time datetime="2026-11-26T09:24:32.027Z">2026/11/26 18:24（日本時間）</time></span></footer>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.10.0 · アプリ更新 <time datetime="2026-11-26T10:05:49.604Z">2026/11/26 19:05（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -445,13 +445,16 @@ const DEFAULT_STATE = {
 };
 
 /* ========== 状態管理 ========== */
-let localSaveFailed = false, localReadFailed = false, stateGeneration = 0;
+let localSaveFailed = false, localReadFailed = false, stateGeneration = 0, localObservedRaw = null, localTabConflict = false;
 let syncBusy = false, syncStatusEpoch = 0;
+let autoSyncTimer=null,autoSyncStarted=false,autoSyncRetryDelay=5000,autoSyncRerun=false,autoSyncBlocked=false,autoSyncEndpoint='',autoSyncDeferred=false,autoSyncRenderPending=false;
+const syncDraftFields=new Map(),syncChangeGeneration=new WeakMap();
 const syncMetaCache = new Map();
 let state = loadLocal();
 function loadLocal(){
   try{
     const raw = localStorage.getItem('kakeiOS');
+    localObservedRaw=raw;
     if(raw){ const s = JSON.parse(raw); return Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)), s); }
   }catch(e){ localReadFailed = true; console.warn('localStorage読込失敗', e); }
   return JSON.parse(JSON.stringify(DEFAULT_STATE));
@@ -461,28 +464,31 @@ function persist(options={}){
   stateGeneration++;
   try{
     if(localReadFailed) throw Error('保存済みデータを読み込めていないため、上書きを停止しています。');
-    localStorage.setItem('kakeiOS', JSON.stringify(state));
+    if(localStorage.getItem('kakeiOS')!==localObservedRaw){localTabConflict=true;throw Error('別の画面でデータが変更されました。');}
+    const serialized=JSON.stringify(state);localStorage.setItem('kakeiOS',serialized);localObservedRaw=serialized;
     localSaveFailed = false;
   }catch(e){
     localSaveFailed = true;
-    setSync(localReadFailed ? '保存済みデータを読み込めません。上書きを停止しています。' : 'この端末に保存できません。画面を閉じる前に設定からバックアップを保存してください。');
+    setSync(localTabConflict ? '別の画面でデータが変更されました。上書きを停止しています。入力中の内容を控えてから、この画面を更新してください。' : localReadFailed ? '保存済みデータを読み込めません。上書きを停止しています。' : 'この端末に保存できません。画面を閉じる前に設定からバックアップを保存してください。');
     renderDataStatus();
     return false;
   }
-  setSync('この端末に保存済み・クラウド未反映');
+  if(options.edited!==false){
+    writeSyncMeta(Object.assign({},readSyncMeta(),{syncPending:true}));
+    if(!autoSyncBlocked)setSync('変更をこの端末に保存しました。自動同期を待っています。');
+    scheduleAutoSync(2500);
+  }
   renderDataStatus();
-  if(!syncBusy) void refreshSyncStatus();
   return true;
 }
 function setSync(msg){
   syncStatusEpoch++;
-  const compact = /できません|失敗|停止|別の内容/.test(msg) ? '保存状況を確認'
-    : /未反映/.test(msg) ? 'クラウド未反映'
-    : /確認中|保存中|読み込み中/.test(msg) ? 'クラウド確認中…'
-    : /前回確認したクラウドと一致/.test(msg) ? '前回同期と一致'
-    : /クラウドに保存しました|クラウド保存済み|クラウド保存は完了/.test(msg) ? 'クラウド保存済み'
-    : /クラウドを読み込みました|クラウド読込済み/.test(msg) ? 'クラウド読込済み'
-    : 'この端末に保存';
+  const compact = /別の内容|競合|上書きを停止|確認が必要/.test(msg) ? '同期を確認'
+    : /オフライン|通信|再試行|待っています|未反映|入力中/.test(msg) ? '同期待ち'
+    : /できません|失敗|停止/.test(msg) ? '保存状況を確認'
+    : /確認中|保存中|読み込み中|同期中/.test(msg) ? '同期中…'
+    : /同期済み|同期しました|同期は完了/.test(msg) ? '同期済み'
+    : '自動同期';
   document.getElementById('syncStatus').textContent = compact;
   document.getElementById('syncStatus').title = msg;
   const note = document.getElementById('syncNotice');
@@ -513,7 +519,8 @@ function renderDataStatus(){
   const saved = document.getElementById('cloudSavedAt');
   if(updated){ updated.textContent = formatJst(state.updatedAt); updated.dateTime = state.updatedAt || ''; }
   const meta = readSyncMeta();
-  if(saved){ saved.textContent = meta.lastCloudSavedAt ? formatJst(meta.lastCloudSavedAt) : '記録なし'; saved.dateTime = meta.lastCloudSavedAt || ''; }
+  const syncedAt=meta.lastSyncedAt||meta.lastCloudSavedAt||meta.lastCloudLoadedAt;
+  if(saved){ saved.textContent = syncedAt ? formatJst(syncedAt) : 'まだ同期していません'; saved.dateTime = syncedAt || ''; }
 }
 function stableJson(value){
   if(Array.isArray(value)) return '['+value.map(v=>stableJson(v)??'null').join(',')+']';
@@ -534,13 +541,14 @@ async function refreshSyncStatus(){
   if(syncBusy) return;
   if(localReadFailed){ setSync('保存済みデータを読み込めません。上書きを停止しています。'); return; }
   if(localSaveFailed){ setSync('この端末に保存できません。設定からバックアップを保存してください。'); return; }
+  if(autoSyncBlocked||autoSyncDeferred)return;
   if(!state.settings.gasUrl){ setSync('この端末に保存済み・クラウド接続先は未設定'); return; }
   const epoch = syncStatusEpoch, meta = readSyncMeta();
-  if(!meta.baselineFingerprint){ setSync('この端末に保存済み・クラウドとの一致は未確認'); return; }
+  if(!meta.baselineFingerprint){ setSync('クラウドとの同期を確認中…'); return; }
   try{
     const fingerprint = await stateFingerprint(state);
     if(syncBusy || epoch!==syncStatusEpoch) return;
-    setSync(fingerprint===meta.baselineFingerprint ? 'この端末に保存済み・前回確認したクラウドと一致' : 'この端末に保存済み・クラウド未反映');
+    setSync(fingerprint===meta.baselineFingerprint ? '同期済み '+formatJst(meta.lastSyncedAt||meta.lastCloudSavedAt||meta.lastCloudLoadedAt) : '変更をこの端末に保存しました。自動同期を待っています。');
   }catch(_){ if(epoch===syncStatusEpoch) setSync('この端末に保存済み・クラウドとの比較は未確認'); }
 }
 
@@ -701,6 +709,8 @@ function skipRecurringKey(key){
   if(!skips.includes(key)) skips.push(key);
 }
 function ensureRecurringTransactions(){
+  const previousTransactions=state.transactions,transactions=previousTransactions.slice();
+  const previousSkips=state.recurringSkips,previousUpdatedAt=state.updatedAt;
   const today = new Date();
   const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   const thisMonth = monthKey(today);
@@ -714,14 +724,14 @@ function ensureRecurringTransactions(){
       const date = recurringDate(ym, parseInt(f.postDay)||1);
       if(date <= todayStr){
         const rkey = f.id + '|' + ym;
-        const existsRecurring = state.transactions.some(t=>t.recurringKey===rkey);
+        const existsRecurring = transactions.some(t=>t.recurringKey===rkey);
         const isSkipped = recurringSkips().includes(rkey);
         // 過去に同じ固定費を手動入力している場合は重複を避ける
-        const existsSameManual = state.transactions.some(t=>
+        const existsSameManual = transactions.some(t=>
           cycleOf(t.date)===ym && t.merchant===f.label && t.amount===f.amount && t.src==='manual'
         );
         if(!existsRecurring && !isSkipped && !existsSameManual){
-          state.transactions.push({
+          transactions.push({
             id:uid(), date, merchant:f.label, amount:f.amount, category:f.category,
             src:'recurring', recurringKey:rkey, recurringFixedId:f.id, recurringMonth:ym
           });
@@ -731,7 +741,15 @@ function ensureRecurringTransactions(){
       ym = addMonthsKey(ym, 1);
     }
   });
-  if(changed) persist();
+  if(changed){
+    state.transactions=transactions;
+    if(!persist()){
+      state.transactions=previousTransactions;
+      if(previousSkips===undefined)delete state.recurringSkips;else state.recurringSkips=previousSkips;
+      rollbackUpdatedAt(previousUpdatedAt);
+      return false;
+    }
+  }
   return changed;
 }
 
@@ -1309,7 +1327,6 @@ function renderTxResults(){
   });
 }
 function renderTx(){
-  ensureRecurringTransactions();
   const el=document.getElementById('tab-tx');
   const draftIds=['csvPaste','manDate','manMerchant','manAmount','plDate','plText','plAmount','plCat'];
   draftIds.forEach(id=>{ const input=el.querySelector('#'+id); if(input) txFormDraft[id]=input.value; });
@@ -2058,15 +2075,16 @@ function renderSettings(){
     <p class="muted mt">新カテゴリ名を入力した場合はカテゴリも同時に作成されます。明細をそのカテゴリに分類すると枠にカウントされます。</p>
   </div>
   <div class="card">
-    <h2>クラウド保存 <span class="hint">端末間でデータを引き継ぎます</span></h2>
+    <h2>自動同期 <span class="hint">変更をほかの端末にも反映します</span></h2>
+    <p class="muted mb" id="settingsAppRelease"></p>
     <div class="row mb">
       <input type="text" id="setGas" value="${esc(s.gasUrl)}" placeholder="GASウェブアプリのURL(https://script.google.com/macros/s/.../exec)" style="flex:1; min-width:240px">
     </div>
     <div class="row">
-      <button class="btn primary" id="gasSave">クラウドに保存</button>
-      <button class="btn" id="gasLoad">クラウドから読込</button>
+      <button class="btn primary" id="gasSave">今すぐ同期</button>
+      <button class="btn" id="gasLoad">クラウドの内容を確認して読み込む</button>
     </div>
-    <p class="muted mt">変更はこの端末に自動保存されます。他の端末へ反映するには「クラウドに保存」を押してください。「クラウドから読込」は、この端末の内容をクラウドの内容に入れ替えます。保存前に別端末の更新を確認します。同時に複数端末から保存せず、端末を切り替えたら先に読み込んでください。</p>
+    <p class="muted mt">変更はすぐにこの端末へ保存し、少し待つとクラウドにも自動で同期します。起動時・画面に戻ったとき・通信が戻ったときに、ほかの端末の変更も確認します。通信できない間の変更は残り、再接続後に送信します。両方の端末で変更が重なった場合だけ、残す内容の確認を表示します。入力途中のフォームは、追加・保存または取り消してから反映します。</p>
     <details class="mt"><summary class="muted">入れ替え前に退避したデータ</summary><p class="muted mt">直前の読み込み・上書きで退避した内容を、バックアップとして書き出せます。この端末にだけ保存されています。</p><div class="row mt"><button class="btn" id="syncRecoveryLocal">退避した端末データを出力</button><button class="btn" id="syncRecoveryCloud">退避したクラウドデータを出力</button></div></details>
   </div>
   <div class="card">
@@ -2176,7 +2194,8 @@ function renderSettings(){
     target.budget = { period, amount };
     persist(); renderSettings();
   };
-  el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); persist(); };
+  el.querySelector('#settingsAppRelease').textContent=document.querySelector('footer .app-release')?.textContent||'';
+  el.querySelector('#setGas').onchange = e=>{ s.gasUrl = e.target.value.trim(); autoSyncBlocked=false; persist(); };
   // カテゴリ管理
   el.querySelector('#catAdd').onclick = ()=>{
     const name = el.querySelector('#catNew').value.trim();
@@ -2378,124 +2397,201 @@ function buildReport(range){
 
 /* ---------- GAS同期 ---------- */
 function setSyncBusy(value){
-  syncBusy = value;
+  syncBusy=value;
   for(const id of ['quickCloudSave','gasSave','gasLoad','syncReviewLoad','syncReviewOverwrite']){
-    const button = document.getElementById(id);
-    if(button) button.disabled = value;
+    const button=document.getElementById(id);if(button)button.disabled=value;
   }
 }
-async function fetchCloudState(url){
-  const res = await fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now());
-  if(!res.ok) throw Error('クラウドへ接続できませんでした。');
-  const data = await res.json();
-  if(data && typeof data==='object' && !Array.isArray(data) && Object.keys(data).length===0) return null;
-  if(!data || typeof data!=='object' || Array.isArray(data) || !data.settings || typeof data.settings!=='object' || Array.isArray(data.settings)) throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
-  for(const key of ['transactions','fixed','incomes','history','categories','todos','plans','recurringSkips']){
-    if(data[key]!==undefined && !Array.isArray(data[key])) throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
+function cloudSyncUrl(url){return url+(url.includes('?')?'&':'?')+'sync=ledgers-v1';}
+function validateCloudData(data){
+  if(data===null)return null;
+  if(!data||typeof data!=='object'||Array.isArray(data)||!data.settings||typeof data.settings!=='object'||Array.isArray(data.settings))throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
+  for(const key of ['transactions','fixed','incomes','history','categories','todos','plans','recurringSkips','savingsReports']){
+    if(data[key]!==undefined&&!Array.isArray(data[key]))throw Error('クラウドのデータ形式を確認できません。上書きは行っていません。');
   }
   return data;
 }
+function validateSyncEnvelope(value){
+  if(!value||value.protocol!=='ledgers-sync-v1'||typeof value.revision!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(value.revision))throw Error('自動同期に対応した接続先を確認できません。アプリと接続先の更新を確認してください。');
+  if(!Object.hasOwn(value,'data'))throw Error('クラウドのデータを確認できません。');
+  return {revision:value.revision,data:validateCloudData(value.data)};
+}
+async function fetchCloudState(url){
+  const response=await fetch(cloudSyncUrl(url)+'&t='+Date.now());
+  if(!response.ok)throw Error('クラウドへ接続できませんでした。');
+  return validateSyncEnvelope(await response.json());
+}
 function cloudDataSummary(data){
-  if(!data) return 'データなし';
+  if(!data)return 'データなし';
   return '明細 '+(data.transactions||[]).length+'件 / 更新 '+formatJst(data.updatedAt);
 }
-function createSyncRecovery(url, cloud, reason){
-  const recovery = {savedAt:new Date().toISOString(),reason,local:state,cloud};
-  try{ localStorage.setItem('ledgers-recovery-v1:'+encodeURIComponent(url), JSON.stringify(recovery)); }
-  catch(_){ throw Error('上書き前の退避を保存できません。設定からバックアップを書き出し、端末の空き容量を確認してください。'); }
+function createSyncRecovery(url,cloud,reason){
+  const recovery={savedAt:new Date().toISOString(),reason,local:state,cloud};
+  try{localStorage.setItem('ledgers-recovery-v1:'+encodeURIComponent(url),JSON.stringify(recovery));}
+  catch(_){throw Error('入れ替え前の退避を保存できません。設定からバックアップを書き出し、端末の空き容量を確認してください。');}
 }
 function downloadSyncRecovery(source){
-  const url = (state.settings.gasUrl||'').trim();
-  let recovery;
-  try{ recovery = JSON.parse(localStorage.getItem('ledgers-recovery-v1:'+encodeURIComponent(url))||'null'); }catch(_){}
-  if(!recovery || !recovery[source]){ alert('この接続先の退避データはありません。'); return; }
+  const url=(state.settings.gasUrl||'').trim();let recovery;
+  try{recovery=JSON.parse(localStorage.getItem('ledgers-recovery-v1:'+encodeURIComponent(url))||'null');}catch(_){}
+  if(!recovery||!recovery[source]){alert('この接続先の退避データはありません。');return;}
   download('ledgers-recovery-'+source+'.json',JSON.stringify(recovery[source],null,2),'application/json');
 }
 function showSyncConflict(cloud){
-  document.getElementById('syncConflictSummary').textContent = 'クラウドに別の内容があります。保存を止めています。\nこの端末：'+cloudDataSummary(state)+'\nクラウド：'+cloudDataSummary(cloud)+'\n先にどちらの内容を残すか確認してください。読み込み・上書き前には現在の内容を端末に退避します。';
-  document.getElementById('syncConflict').hidden = false;
+  autoSyncBlocked=true;
+  document.getElementById('syncConflictSummary').textContent='この端末とクラウドの両方に変更があります。どちらも自動で上書きしません。\nこの端末：'+cloudDataSummary(state)+'\nクラウド：'+cloudDataSummary(cloud)+'\n残す内容を確認してください。入れ替え前の両方の内容は、この端末に退避します。';
+  document.getElementById('syncConflict').hidden=false;
+  setSync('クラウドに別の内容があります。同期を止めているため、確認が必要です。');
 }
-async function gasSave(options={}){
-  if(syncBusy) return false;
-  const url = (state.settings.gasUrl||'').trim();
-  if(!url){ alert('設定でクラウド接続先を設定してください。'); return false; }
-  if(localReadFailed){ setSync('保存済みデータを読み込めないため、クラウド保存を停止しています。'); return false; }
-  setSyncBusy(true);
-  setSync('クラウドの更新を確認中…');
-  const generation = stateGeneration;
+function hasSyncDraft(){
+  if(typeof importPreview!=='undefined'&&importPreview)return true;
+  const active=document.activeElement;
+  if(active?.matches?.('input,textarea,select,[contenteditable="true"]'))return true;
+  if(document.querySelector?.('dialog[open]'))return true;
+  for(const [field,original] of syncDraftFields){
+    if(field.isConnected===false){syncDraftFields.delete(field);continue;}
+    const value=field.type==='checkbox'||field.type==='radio'?field.checked:field.value;
+    if(value!==original)return true;
+  }
+  return false;
+}
+function refreshRecurringAfterSync(){
+  const added=ensureRecurringTransactions();
+  if(added)autoSyncRenderPending=true;
+  if(autoSyncRenderPending&&!hasSyncDraft()){render();autoSyncRenderPending=false;}
+  return added;
+}
+function stopSyncForLocalFailure(){
+  if(!localSaveFailed)return false;
+  autoSyncRerun=false;
+  setSync(localTabConflict?'別の画面でデータが変更されました。上書きを停止しています。入力中の内容を控えて、この画面を更新してください。':'この端末に保存できません。直前に保存できた内容を保持しています。設定からバックアップを保存し、端末の空き容量を確認してください。');
+  return true;
+}
+function scheduleAutoSync(delay=2500){
+  if(autoSyncTimer!==null)clearTimeout(autoSyncTimer);
+  autoSyncTimer=null;
+  if(autoSyncBlocked||localReadFailed||localSaveFailed||localTabConflict)return;
+  if(syncBusy){autoSyncRerun=true;return;}
+  autoSyncTimer=setTimeout(()=>{autoSyncTimer=null;void runAutoSync();},delay);
+}
+function markSyncVerified(url,envelope,fingerprint,{saved=false,loaded=false,pending=false}={}){
+  const now=new Date().toISOString();
+  const meta=Object.assign({},readSyncMeta(url),{baselineFingerprint:fingerprint,revision:envelope.revision,lastSyncedAt:now,syncPending:pending,inFlightFingerprint:null});
+  if(saved)meta.lastCloudSavedAt=now;if(loaded)meta.lastCloudLoadedAt=now;
+  const stored=writeSyncMeta(meta,url);autoSyncBlocked=false;autoSyncRetryDelay=5000;
+  document.getElementById('syncConflict').hidden=true;renderDataStatus();
+  return stored;
+}
+async function runAutoSync(options={}){
+  if(syncBusy){autoSyncRerun=true;return false;}
+  if(autoSyncTimer!==null){clearTimeout(autoSyncTimer);autoSyncTimer=null;}
+  const url=(state.settings.gasUrl||'').trim();
+  if(url!==autoSyncEndpoint){autoSyncEndpoint=url;autoSyncBlocked=false;autoSyncRetryDelay=5000;}
+  if(autoSyncBlocked&&!options.manual&&!options.force&&!options.preferCloud)return false;
+  if(localReadFailed||localSaveFailed||localTabConflict){setSync(localTabConflict?'別の画面でデータが変更されました。上書きを停止しています。入力中の内容を控えて、この画面を更新してください。':localSaveFailed?'この端末に保存できません。自動同期を停止しています。設定からバックアップを保存してください。':'この端末の保存状況を確認できません。自動同期を停止しています。設定からバックアップを保存してください。');return false;}
+  if(!url){setSync('この端末に保存済みです。設定でクラウド接続先を指定すると自動同期します。');return false;}
+  if(typeof navigator!=='undefined'&&navigator.onLine===false){refreshRecurringAfterSync();if(stopSyncForLocalFailure())return false;setSync('オフラインです。変更はこの端末に保存済みです。通信が戻ると自動同期します。');scheduleAutoSync(autoSyncRetryDelay);autoSyncRetryDelay=Math.min(60000,autoSyncRetryDelay*2);return false;}
+  setSyncBusy(true);autoSyncRerun=false;autoSyncDeferred=false;
+  setSync('クラウドと同期中…');
+  const generation=stateGeneration;let retryAfter=null;
   try{
-    const cloud = await fetchCloudState(url);
-    const snapshot = JSON.parse(JSON.stringify(state));
-    const fingerprint = await stateFingerprint(snapshot);
-    const cloudFingerprint = cloud ? await stateFingerprint(cloud) : null;
-    const meta = readSyncMeta(url);
-    if(generation!==stateGeneration || url!==(state.settings.gasUrl||'').trim()) throw Error('確認中に内容が変わりました。もう一度「クラウドに保存」を押してください。');
-    const conflict = cloud && cloudFingerprint!==fingerprint && cloudFingerprint!==meta.baselineFingerprint;
-    if(conflict && options.force!==true){
-      showSyncConflict(cloud);
-      setSync('クラウドに別の内容があります。確認するまで保存しません。');
-      return false;
+    const envelope=await fetchCloudState(url),cloud=envelope.data;
+    const snapshot=JSON.parse(JSON.stringify(state));
+    const [localFingerprint,cloudFingerprint,emptyFingerprint]=await Promise.all([stateFingerprint(snapshot),cloud?stateFingerprint(cloud):Promise.resolve(null),stateFingerprint(DEFAULT_STATE)]);
+    if(generation!==stateGeneration||url!==(state.settings.gasUrl||'').trim()){autoSyncRerun=true;return false;}
+    if(localStorage.getItem('kakeiOS')!==localObservedRaw){localTabConflict=true;setSync('別の画面でデータが変更されました。上書きを停止しています。この画面を更新してください。');return false;}
+    let meta=readSyncMeta(url);const empty=localFingerprint===emptyFingerprint;
+    if(cloudFingerprint&&meta.inFlightFingerprint===cloudFingerprint){
+      meta=Object.assign({},meta,{baselineFingerprint:cloudFingerprint,revision:envelope.revision,inFlightFingerprint:null});writeSyncMeta(meta,url);
     }
+    const localDirty=meta.baselineFingerprint?localFingerprint!==meta.baselineFingerprint:!empty;
+    const cloudChanged=cloudFingerprint!==meta.baselineFingerprint;
+    if(cloud&&localFingerprint===cloudFingerprint){
+      const stored=markSyncVerified(url,envelope,localFingerprint);
+      const added=refreshRecurringAfterSync();if(added)autoSyncRerun=true;
+      if(stopSyncForLocalFailure())return false;
+      setSync(!stored?'同期は完了しました。端末に同期履歴を保存できません。':added?'追加された定期明細を自動同期します。':'同期済み '+formatJst(readSyncMeta(url).lastSyncedAt));return true;
+    }
+    if(!cloud&&empty){
+      const stored=markSyncVerified(url,envelope,localFingerprint);
+      setSync(stored?'同期済みです。まだ記録はありません。':'同期は完了しました。端末に同期履歴を保存できません。');return true;
+    }
+    const pull=!!cloud&&(options.preferCloud||(!options.force&&(!localDirty||(empty&&!meta.baselineFingerprint))));
+    if(pull){
+      if(hasSyncDraft()){
+        autoSyncDeferred=true;setSync('入力中の内容を守るため、クラウドの反映を待っています。入力を追加・保存するか、取り消すと自動で再確認します。');return false;
+      }
+      if(localDirty&&options.preferCloud&&!confirm('この端末の未同期の内容を退避して、クラウドの内容へ入れ替えます。\n\nこの端末：'+cloudDataSummary(snapshot)+'\nクラウド：'+cloudDataSummary(cloud)+'\n\n続けますか？')){showSyncConflict(cloud);return false;}
+      if(!empty)createSyncRecovery(url,cloud,'自動同期のクラウド反映前');
+      const previous=state;
+      state=Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)),cloud);state.settings=Object.assign({},state.settings,{gasUrl:url});
+      if(!persist({edited:false})){state=previous;renderDataStatus();throw Error('この端末に保存できません。読込前の内容を維持しました。');}
+      const stored=markSyncVerified(url,envelope,cloudFingerprint,{loaded:true});
+      if(typeof clearRecordUndo==='function')clearRecordUndo();
+      const added=ensureRecurringTransactions();applyTheme();render();autoSyncRenderPending=false;
+      if(stopSyncForLocalFailure())return false;
+      setSync(!stored?'同期は完了しました。端末に同期履歴を保存できません。':added?'クラウドの内容を反映しました。追加された定期明細を自動同期します。':'同期済み '+formatJst(readSyncMeta(url).lastSyncedAt));
+      if(added)autoSyncRerun=true;return true;
+    }
+    const conflict=cloud?cloudChanged:!!meta.baselineFingerprint&&meta.baselineFingerprint!==emptyFingerprint;
+    if(conflict&&!options.force){
+      showSyncConflict(cloud);createSyncRecovery(url,cloud,'自動同期の競合確認');return false;
+    }
+    if(options.preferCloud&&!cloud){setSync('クラウドに記録はありません。この端末の内容を維持しています。');return false;}
     if(conflict){
-      const message = 'クラウドの内容を、この端末の内容で上書きします。\n\nこの端末：'+cloudDataSummary(snapshot)+'\nクラウド：'+cloudDataSummary(cloud)+'\n\n両方の内容をこの端末に退避してから上書きします。クラウド側だけの変更は反映されなくなります。続けますか？';
-      if(!confirm(message)){ setSync('クラウド保存を取り消しました。内容は変更していません。'); return false; }
-      createSyncRecovery(url, cloud, 'クラウド上書き前');
+      if(!confirm('クラウドの内容を、この端末の内容で上書きします。\n\nこの端末：'+cloudDataSummary(snapshot)+'\nクラウド：'+cloudDataSummary(cloud)+'\n\n両方をこの端末に退避します。クラウド側だけの変更は反映されなくなります。続けますか？')){showSyncConflict(cloud);return false;}
+      createSyncRecovery(url,cloud,'確認したクラウド上書き前');
     }
-    setSync('クラウドへ保存中…');
-    const res = await fetch(url, {method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(snapshot)});
-    const result = await res.json();
-    if(!res.ok || result.ok!==true) throw Error(result.error||'保存完了を確認できませんでした。');
-    const stored = writeSyncMeta(Object.assign({},meta,{baselineFingerprint:fingerprint,lastCloudSavedAt:new Date().toISOString()}),url);
-    document.getElementById('syncConflict').hidden = true;
-    renderDataStatus();
-    const changed = generation!==stateGeneration;
-    setSync(!stored ? 'クラウド保存は完了しました。端末に同期履歴を保存できません。' : localSaveFailed ? 'クラウド保存済み・この端末への保存は失敗しています。' : changed ? 'クラウド保存済み・保存中の追加変更はまだ未反映です。' : 'クラウドに保存しました '+formatJst(readSyncMeta(url).lastCloudSavedAt));
-    return true;
-  }catch(e){
-    setSync('クラウド保存の完了を確認できません。'+e.message);
+    setSync('クラウドへ変更を保存中…');
+    writeSyncMeta(Object.assign({},readSyncMeta(url),{syncPending:true,inFlightFingerprint:localFingerprint}),url);
+    const response=await fetch(cloudSyncUrl(url),{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({protocol:'ledgers-sync-v1',expectedRevision:envelope.revision,data:snapshot})});
+    const result=await response.json();
+    if(url!==(state.settings.gasUrl||'').trim()){autoSyncRerun=true;return false;}
+    if(result?.protocol==='ledgers-sync-v1'&&result.error==='sync_conflict'){
+      const latest=validateSyncEnvelope(result);showSyncConflict(latest.data);createSyncRecovery(url,latest.data,'保存直前の競合確認');return false;
+    }
+    if(!response.ok||!result||result.ok!==true||result.protocol!=='ledgers-sync-v1'||typeof result.revision!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(result.revision))throw Error(result?.error||'保存完了を確認できませんでした。');
+    if(localTabConflict||localStorage.getItem('kakeiOS')!==localObservedRaw){localTabConflict=true;setSync('送信した変更は保存されましたが、別の画面で端末の内容が変わりました。入力中の内容を控えて、この画面を更新してください。');return false;}
+    const changed=generation!==stateGeneration;
+    const stored=markSyncVerified(url,result,localFingerprint,{saved:true,pending:changed});
+    const added=refreshRecurringAfterSync();
+    if(stopSyncForLocalFailure())return false;
+    setSync(!stored?'同期は完了しました。端末に同期履歴を保存できません。':changed||added?'送信中に追加した変更があります。続けて自動同期します。':'同期済み '+formatJst(readSyncMeta(url).lastSyncedAt));
+    if(changed||added)autoSyncRerun=true;return true;
+  }catch(error){
+    if(url!==(state.settings.gasUrl||'').trim()){autoSyncRerun=true;return false;}
+    if(stopSyncForLocalFailure())return false;
+    if(!autoSyncBlocked){
+      refreshRecurringAfterSync();
+      if(stopSyncForLocalFailure())return false;
+      setSync('通信または保存の完了を確認できません。変更は保持しています。'+error.message+' 自動で再試行します。');
+      retryAfter=autoSyncRetryDelay;autoSyncRetryDelay=Math.min(60000,autoSyncRetryDelay*2);
+    }else setSync('同期を停止しています。'+error.message);
     return false;
-  }finally{ setSyncBusy(false); }
+  }finally{
+    setSyncBusy(false);
+    if(!autoSyncBlocked&&!localTabConflict){if(retryAfter!==null)scheduleAutoSync(retryAfter);else if(autoSyncRerun)scheduleAutoSync(0);}
+  }
 }
-async function gasLoad(){
-  if(syncBusy) return false;
-  const url = (state.settings.gasUrl||'').trim();
-  if(!url){ alert('設定でクラウド接続先を設定してください。'); return false; }
-  if(localReadFailed){ setSync('保存済みデータを読み込めないため、クラウド読込を停止しています。'); return false; }
-  setSyncBusy(true);
-  setSync('クラウドを読み込み中…');
-  const generation = stateGeneration;
-  try{
-    const data = await fetchCloudState(url);
-    if(!data){ setSync('クラウドにデータはありません。この端末の内容を維持しました。'); return false; }
-    const fingerprint = await stateFingerprint(data);
-    const localFingerprint = await stateFingerprint(state);
-    const emptyFingerprint = await stateFingerprint(DEFAULT_STATE);
-    const meta = readSyncMeta(url);
-    if(generation!==stateGeneration || url!==(state.settings.gasUrl||'').trim()) throw Error('読込中に端末の内容が変わりました。もう一度読み込んでください。');
-    const different = localFingerprint!==fingerprint;
-    const dirty = meta.baselineFingerprint ? localFingerprint!==meta.baselineFingerprint : localFingerprint!==emptyFingerprint;
-    if(different && dirty && !confirm('この端末にクラウドへ未反映、または同期状況を確認できない内容があります。\n\nこの端末：'+cloudDataSummary(state)+'\nクラウド：'+cloudDataSummary(data)+'\n\n現在の内容をこの端末に退避してから、クラウドの内容に入れ替えます。続けますか？')){
-      setSync('クラウド読込を取り消しました。この端末の内容を維持しました。');
-      return false;
-    }
-    if(different && localFingerprint!==emptyFingerprint) createSyncRecovery(url, data, 'クラウド読込前');
-    const previous = state;
-    state = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATE)),data);
-    state.settings = Object.assign({},state.settings,{gasUrl:url});
-    if(!persist({edited:false})){
-      state = previous;
-      renderDataStatus();
-      throw Error('この端末へ保存できないため、読込前の内容を維持しました。');
-    }
-    const stored = writeSyncMeta(Object.assign({},meta,{baselineFingerprint:fingerprint,lastCloudLoadedAt:new Date().toISOString()}),url);
-    const added = ensureRecurringTransactions();
-    applyTheme(); render();
-    document.getElementById('syncConflict').hidden = true;
-    renderDataStatus();
-    setSync(!stored ? 'クラウドを読み込みました。端末に同期履歴を保存できません。' : localSaveFailed ? '読込後の変更をこの端末に保存できません。バックアップを保存してください。' : added ? 'クラウド読込済み・追加された定期明細はクラウド未反映です。' : 'クラウドを読み込みました '+formatJst(readSyncMeta(url).lastCloudLoadedAt));
-    return true;
-  }catch(e){ setSync('クラウド読込は完了していません。'+e.message); return false; }
-  finally{ setSyncBusy(false); }
+function gasSave(options={}){return runAutoSync({manual:true,force:options?.force===true});}
+function gasLoad(){return runAutoSync({manual:true,preferCloud:true});}
+function startAutoSync(){
+  if(autoSyncStarted)return;autoSyncStarted=true;
+  const isField=field=>field?.matches?.('input:not([type="button"]):not([type="submit"]),textarea,select');
+  const remember=field=>{if(isField(field)&&!syncDraftFields.has(field))syncDraftFields.set(field,field.type==='checkbox'||field.type==='radio'?field.checked:field.value);};
+  document.addEventListener('focusin',event=>remember(event.target));
+  document.addEventListener('input',event=>{if(isField(event.target)&&!syncDraftFields.has(event.target))syncDraftFields.set(event.target,event.target.defaultValue??'');});
+  document.addEventListener('change',event=>{if(isField(event.target)){syncChangeGeneration.set(event.target,stateGeneration);remember(event.target);}},true);
+  document.addEventListener('change',event=>{if(isField(event.target)&&syncChangeGeneration.get(event.target)!==stateGeneration&&!localSaveFailed)syncDraftFields.delete(event.target);});
+  document.addEventListener('focusout',()=>{if(autoSyncDeferred)scheduleAutoSync(250);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)scheduleAutoSync(0);});
+  window.addEventListener('online',()=>{autoSyncRetryDelay=5000;scheduleAutoSync(0);});
+  window.addEventListener('pageshow',()=>scheduleAutoSync(0));
+  window.addEventListener('storage',event=>{
+    if(event.key==='kakeiOS'&&event.newValue!==localObservedRaw){localTabConflict=true;setSync('別の画面でデータが変更されました。上書きを停止しています。入力中の内容を控えて、この画面を更新してください。');}
+    if(event.key?.startsWith('ledgers-sync-v1:'))syncMetaCache.delete(event.key);
+  });
+  setInterval(()=>{if(!document.hidden&&!syncBusy&&autoSyncTimer===null)scheduleAutoSync(0);},15000);
+  scheduleAutoSync(0);
 }
 
 /* ---------- テーマ ---------- */
@@ -2562,12 +2658,13 @@ function activeTabName(){
 
 /* ---------- 起動 ---------- */
 applyTheme();
-ensureRecurringTransactions();
+if(!state.settings.gasUrl||(typeof navigator!=='undefined'&&navigator.onLine===false))ensureRecurringTransactions();
 render();
 document.getElementById('quickCloudSave').onclick = ()=>gasSave();
 document.getElementById('syncReviewLoad').onclick = ()=>gasLoad();
 document.getElementById('syncReviewOverwrite').onclick = ()=>gasSave({force:true});
 void refreshSyncStatus();
+startAutoSync();
 appTabPrefs.boot();
 </script>
 <script>window.SuiteDeviceConfig={app:"kakei",name:"Ledgers OS",settingsTarget:"#tab-settings",url:"https://script.google.com/macros/s/AKfycbwTcUYjxaPWYabs6rBR4tBZvr09aImo0xGst7nTptujEUA6JgxAfjtWZfpTomA2KAS3/exec",readUrl(){return (JSON.parse(localStorage.getItem("kakeiOS")||'{}').settings?.gasUrl);},ensureUrl(url){const s=JSON.parse(localStorage.getItem("kakeiOS")||'{}');s.settings=s.settings||{};if(!s.settings.gasUrl)s.settings.gasUrl=url;localStorage.setItem("kakeiOS",JSON.stringify(s));}};
@@ -2741,7 +2838,7 @@ function createSuiteCredentialStore({key,storage,indexedDB,cookieDocument,cookie
   if(locked||!device)throw Error('registration_required');
   const query=Object.fromEntries(u.searchParams);const result=await rpc('call',{method:(init.method||'GET').toUpperCase(),query,body:init.body||''});
   let j;try{j=JSON.parse(result.body);}catch(_){}
-  if(j&&(j.ok===false||j.error))throw Error(j.error||'server_error');
+  if(j&&(j.ok===false||j.error)&&!(u.searchParams.get('sync')==='ledgers-v1'&&j.protocol==='ledgers-sync-v1'))throw Error(j.error||'server_error');
   return new Response(result.body,{status:200,headers:{'Content-Type':'application/json'}});
  };
  function open(){
