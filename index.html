@@ -324,7 +324,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
       <span class="brand-sub">Household Finance</span>
     </span>
   </div>
-  <span class="ver">Ver.3.10.0</span>
+  <span class="ver">Ver.3.10.1</span>
   <button id="themeBtn" title="テーマ切替" aria-label="テーマ切替"></button>
   <span id="syncStatus" style="margin-left:0"></span>
 <button id="settingsBtn" data-tab="settings" title="設定" aria-label="設定" aria-pressed="false"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -358,7 +358,7 @@ footer{text-align:center; font-size:10.5px; color:var(--faint); padding:24px; le
   <section id="tab-settings" class="hidden"></section>
 </main>
 <div class="undo-notice" id="recordUndoNotice" hidden><span id="recordUndoMessage" role="status" aria-live="polite"></span><button type="button" class="btn" id="recordUndoButton">元に戻す</button></div>
-<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.10.0 · アプリ更新 <time datetime="2026-11-26T10:05:49.604Z">2026/11/26 19:05（日本時間）</time></span></footer>
+<footer>LEDGER · PRIVATE HOUSEHOLD FINANCE<span class="app-release">Ver.3.10.1 · アプリ更新 <time datetime="2026-11-27T03:13:49.000Z">2026/11/27 12:13（日本時間）</time></span></footer>
 
 <script type="text/plain" id="suite-original-app">
 // 表示設定だけを端末に保存。業務データと同期設定は変更しない。
@@ -1465,7 +1465,9 @@ function normalizeSavingsAdvice(input, rows, sourceDigest, sourceName) {
 }
 
 function adviceReadyForImport(parsed,rows,selected){
-  return !!parsed.advice && !parsed.fatal && rows.every(r=>r.status!=='new' || selected.has(r.index));
+  return !!parsed.advice && !parsed.fatal && (parsed.analysisOnly
+    ? rows.length===parsed.rows.length && rows.every(r=>r.status==='imported'||r.status==='overlap')
+    : rows.every(r=>r.status!=='new' || selected.has(r.index)));
 }
 function savingsReportsWith(report){
   const reports=Array.isArray(state.savingsReports)?state.savingsReports:[];
@@ -1480,12 +1482,13 @@ function renderSavingsAdvice(host){
     host.innerHTML='<div class="card savings-advice"><h2>AIの節約アドバイス</h2><p class="muted">次のAmex明細PDFをCodexに渡すと、取り込みと一緒に支出を振り返り、見直し候補をここに保存します。</p><p class="hint mt">PDFを添付するだけで進められます。作成した提案はクラウド保存で他の端末からも確認できます。</p></div>';
     return;
   }
-  host.innerHTML=`<div class="card savings-advice"><h2>AIの節約アドバイス</h2>${reports.length>1?`<label class="hint" for="adviceReportSelect">過去のアドバイス</label><select id="adviceReportSelect">${reports.map((r,i)=>`<option value="${i}">${esc(r.periodStart)}〜${esc(r.periodEnd)} · ${esc(formatJst(r.generatedAt))}</option>`).join('')}</select>`:''}<div id="adviceReportContent"></div></div>`;
+  host.innerHTML=`<div class="card savings-advice"><h2>AIの節約アドバイス</h2>${reports.length>1?`<label class="hint" for="adviceReportSelect">過去のアドバイス</label><select id="adviceReportSelect">${reports.map((r,i)=>`<option value="${i}">${r.scope==='multi-pdf'?esc(r.title)+' · ':''}${esc(r.periodStart)}〜${esc(r.periodEnd)} · ${esc(formatJst(r.generatedAt))}</option>`).join('')}</select>`:''}<div id="adviceReportContent"></div></div>`;
   const display=index=>{
     const r=reports[index];
-    host.querySelector('#adviceReportContent').innerHTML=`<p class="advice-meta mt">対象の利用日 ${esc(r.periodStart)}〜${esc(r.periodEnd)}<br>購入明細 ${esc(r.transactionCount)}件・${yen(Number(r.purchaseTotal)||0)}<br>作成 ${esc(formatJst(r.generatedAt))} · Codex</p>
+    const combined=r.scope==='multi-pdf' && Array.isArray(r.sourceNames);
+    host.querySelector('#adviceReportContent').innerHTML=`${combined?`<h3 class="mt">${esc(r.title)}</h3><p class="advice-meta">元PDF ${r.sourceNames.length}通をまとめた分析</p>`:''}<p class="advice-meta mt">対象の利用日 ${esc(r.periodStart)}〜${esc(r.periodEnd)}<br>購入明細 ${esc(r.transactionCount)}件・購入総額（返金等差引前）${yen(Number(r.purchaseTotal)||0)}<br>作成 ${esc(formatJst(r.generatedAt))} · Codex</p>
       <p class="advice-summary">${esc(r.summary)}</p><div class="advice-items">${r.suggestions.slice(0,5).filter(s=>s&&typeof s==='object').map(s=>`<article class="advice-item"><h3>${esc(s.title)}</h3><p class="advice-amount">根拠となる支出 ${esc(s.observedCount)}件・${yen(Number(s.observedAmount)||0)}</p><p class="muted">${esc(s.evidence)}</p><p class="mt">${esc(s.action)}</p>${Number.isInteger(s.reductionPercent)&&s.reductionPercent>=1&&s.reductionPercent<=100?`<div class="advice-scenario">この支出を${s.reductionPercent}％減らすと、この対象期間で約${yen(Number(BigInt(Number.isSafeInteger(s.observedAmount)?s.observedAmount:0)*BigInt(s.reductionPercent)/100n))}の節約になる試算です。<br>${esc(s.assumption)}</div>`:''}</article>`).join('')}</div>
-      <details class="mt"><summary>分析の対象と補足</summary><p class="advice-meta">${esc(r.sourceName)}の購入明細を基にした、作成時点の提案です。返金・支払・他のカード・現金などは含まれず、家計全体の分析ではありません。取り込み後の編集内容は自動では反映されません。試算は削減を実行した場合の目安で、提案同士の対象が重なることがあるため合計していません。${r.limitations?'<br>'+esc(r.limitations):''}</p></details>`;
+      <details class="mt"><summary>分析の対象と補足</summary><p class="advice-meta">${combined?r.sourceNames.map(name=>esc(name)).join('<br>'):esc(r.sourceName)}<br>上記PDFの購入明細を基にした、作成時点の提案です。返金・支払は購入総額から差し引いていません。他のカード・現金などは含まれず、家計全体の分析ではありません。取り込み後の編集内容は自動では反映されません。試算は削減を実行した場合の目安で、提案同士の対象が重なることがあるため合計していません。${r.limitations?'<br>'+esc(r.limitations):''}</p></details>`;
   };
   display(0);
   const select=host.querySelector('#adviceReportSelect'); if(select) select.onchange=()=>display(Number(select.value));
@@ -1509,6 +1512,36 @@ async function importHash(value){
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(bytes), b=>b.toString(16).padStart(2,'0')).join('');
 }
+async function parseAnalysisPacket(data){
+  if(typeof data.title!=='string' || !data.title.trim() || data.title.length>100) throw Error('統合アドバイスの題名を1〜100文字で指定してください。');
+  if(!Array.isArray(data.sources) || data.sources.length<2 || data.sources.length>12) throw Error('統合するPDFは2〜12通で指定してください。');
+  const result={kind:'analysis',analysisOnly:true,sourceName:data.title.trim(),rows:[],errors:[],ignored:0,fatal:false};
+  const digests=new Set(), sources=[];
+  let count=0;
+  for(const source of data.sources){
+    if(!source || typeof source!=='object' || Array.isArray(source)) throw Error('統合するPDFの形式が正しくありません。');
+    if(typeof source.sourceDigest!=='string' || !/^[a-f0-9]{64}$/.test(source.sourceDigest)) throw Error('PDFの照合情報（SHA-256）が正しくありません。');
+    if(digests.has(source.sourceDigest)) throw Error('同じPDFが重複しています。各PDFは1回だけ指定してください。');
+    digests.add(source.sourceDigest);
+    if(!Array.isArray(source.transactions) || !source.transactions.length) throw Error('各PDFの購入明細を指定してください。');
+    count+=source.transactions.length;
+    if(count>10000) throw Error('統合する明細は合計10,000件以内にしてください。');
+  }
+  for(const source of data.sources){
+    const parsed=await parseImportText(JSON.stringify({format:'ledgers-import-v1',sourceDigest:source.sourceDigest,sourceName:source.sourceName,transactions:source.transactions}));
+    if(parsed.fatal) throw Error('統合するPDF「'+parsed.sourceName+'」に入力エラーがあります。'+parsed.errors[0]);
+    result.rows.push(...parsed.rows);
+    sources.push({sourceDigest:source.sourceDigest,sourceName:parsed.sourceName});
+  }
+  // 全PDFを一度に照合することで、同じ既存明細を別のPDFに使い回さない。
+  if(new Set(result.rows.map(row=>row.id)).size!==result.rows.length) throw Error('統合する明細の照合情報が重複しています。');
+  sources.sort((a,b)=>a.sourceDigest.localeCompare(b.sourceDigest));
+  const sourceDigests=sources.map(source=>source.sourceDigest);
+  const id='analysis:'+await importHash('ledgers-analysis-v1:'+JSON.stringify(sourceDigests));
+  result.advice={...normalizeSavingsAdvice(data.savingsAdvice,result.rows,id,result.sourceName),
+    scope:'multi-pdf',title:result.sourceName,sourceDigests,sourceNames:sources.map(source=>source.sourceName)};
+  return result;
+}
 async function parseImportText(text){
   const source = String(text||'').replace(/^\uFEFF/,'').trim();
   if(!source) throw Error('明細テキストを入力してください。');
@@ -1517,7 +1550,8 @@ async function parseImportText(text){
   if(/^[\[{]/.test(source)){
     let data;
     try{ data = JSON.parse(source); }catch(e){ throw Error('JSONを読み取れません。Codexに明細データの作り直しを依頼してください。'); }
-    if(!data || Array.isArray(data) || data.format!=='ledgers-import-v1') throw Error('Codex用明細の形式はledgers-import-v1です。');
+    if(data && !Array.isArray(data) && data.format==='ledgers-analysis-v1') return parseAnalysisPacket(data);
+    if(!data || Array.isArray(data) || data.format!=='ledgers-import-v1') throw Error('Codex用データの形式はledgers-import-v1またはledgers-analysis-v1です。');
     if(typeof data.sourceDigest!=='string' || !/^[a-f0-9]{64}$/.test(data.sourceDigest)) throw Error('PDFの照合情報（SHA-256）が正しくありません。');
     if(typeof data.sourceName!=='string' || !data.sourceName.trim() || data.sourceName.length>512) throw Error('PDFのファイル名を確認してください。');
     if(!Array.isArray(data.transactions) || !data.transactions.length || data.transactions.length>10000) throw Error('明細は1〜10,000件の配列で指定してください。');
@@ -1571,7 +1605,8 @@ async function parseImportText(text){
   return result;
 }
 function classifyImportRows(parsed, transactions){
-  const ids = new Set(transactions.map(t=>t.id));
+  const byId = new Map(transactions.map(t=>[t.id,t]));
+  const ids = new Set(byId.keys());
   const exactIds = new Set(parsed.rows.filter(r=>r.id && ids.has(r.id)).map(r=>r.id));
   const available = new Map();
   transactions.forEach(t=>{
@@ -1580,7 +1615,7 @@ function classifyImportRows(parsed, transactions){
   });
   return parsed.rows.map((row,index)=>{
     let status='new';
-    if(row.id && ids.has(row.id)) status='imported';
+    if(row.id && ids.has(row.id)) status=parsed.analysisOnly && importRowKey(byId.get(row.id))!==importRowKey(row)?'changed':'imported';
     else{
       const key=importRowKey(row), count=available.get(key)||0;
       if(count>0){ status='overlap'; available.set(key,count-1); }
@@ -1596,8 +1631,8 @@ async function importCsvText(text){
     const parsed=await parseImportText(text);
     if(request!==importRequest) return;
     const rows=classifyImportRows(parsed,state.transactions);
-    importPreview={parsed,rows,selected:new Set(parsed.fatal?[]:rows.filter(r=>r.status==='new').map(r=>r.index))};
-    document.getElementById('importMsg').textContent=parsed.fatal?'入力内容にエラーがあります。修正するまで取り込めません。':'まだ保存していません。追加する明細を確認してください。';
+    importPreview={parsed,rows,selected:new Set(parsed.fatal||parsed.analysisOnly?[]:rows.filter(r=>r.status==='new').map(r=>r.index))};
+    document.getElementById('importMsg').textContent=parsed.fatal?'入力内容にエラーがあります。修正するまで取り込めません。':parsed.analysisOnly?'まだ保存していません。既存の明細を確認し、統合アドバイスだけを保存します。':'まだ保存していません。追加する明細を確認してください。';
     renderImportPreview();
   }catch(e){ if(request===importRequest) document.getElementById('importMsg').textContent=e.message; }
 }
@@ -1607,23 +1642,25 @@ function renderImportPreview(){
   const {parsed,rows,selected}=importPreview;
   const imported=rows.filter(r=>r.status==='imported').length;
   const overlaps=rows.filter(r=>r.status==='overlap').length;
-  const selectedRows=rows.filter(r=>selected.has(r.index));
+  const changed=rows.filter(r=>r.status==='changed').length;
+  const selectedRows=parsed.analysisOnly?[]:rows.filter(r=>selected.has(r.index));
   const adviceReady=adviceReadyForImport(parsed,rows,selected);
   host.innerHTML=`<div class="mt" style="border-top:1px solid var(--line);padding-top:14px">
-    <h2>取り込み前の確認 <span class="hint">${esc(parsed.sourceName)}</span></h2>
-    <p class="muted">有効な明細 ${rows.length}件・合計 ${yen(rows.reduce((sum,r)=>sum+r.amount,0))}<br>同じPDFから取込済み ${imported}件 / 既存明細との一致候補 ${overlaps}件 / 支払・返金・0円を除外 ${parsed.ignored}件 / 入力エラー ${parsed.errors.length}件</p>
-    ${overlaps?'<p class="muted mt">一致候補は選択していません。日付・店名・金額が同じ別の支出であると確認できた場合だけ、チェックを付けてください。</p>':''}
+    <h2>${parsed.analysisOnly?'統合アドバイスの保存前確認':'取り込み前の確認'} <span class="hint">${esc(parsed.sourceName)}</span></h2>
+    <p class="muted">有効な明細 ${rows.length}件・${parsed.analysisOnly?'購入総額（返金等差引前）':'合計 '}${yen(rows.reduce((sum,r)=>sum+r.amount,0))}<br>同じPDFから取込済み ${imported}件 / 既存明細との一致候補 ${overlaps}件${parsed.analysisOnly?` / 既存にない明細 ${rows.length-imported-overlaps-changed}件 / 内容が変わった明細 ${changed}件<br>元PDF ${parsed.advice.sourceNames.length}通・利用日 ${esc(parsed.advice.periodStart)}〜${esc(parsed.advice.periodEnd)}`:` / 支払・返金・0円を除外 ${parsed.ignored}件 / 入力エラー ${parsed.errors.length}件`}</p>
+    ${parsed.analysisOnly?'<p class="muted mt">統合アドバイスだけを保存します。明細の追加・変更は行いません。すべての明細が既存の記録と一致する場合に保存できます。返金・支払は対象外です。</p>':overlaps?'<p class="muted mt">一致候補は選択していません。日付・店名・金額が同じ別の支出であると確認できた場合だけ、チェックを付けてください。</p>':''}
     ${parsed.errors.length?`<details class="mt" open><summary>入力エラーを確認（${parsed.errors.length}件）</summary><ul style="padding-left:22px">${parsed.errors.slice(0,50).map(e=>`<li>${esc(e)}</li>`).join('')}</ul>${parsed.errors.length>50?'<p class="muted">先頭50件を表示しています。</p>':''}</details>`:''}
     ${rows.length?`<div class="mt" style="max-height:420px;overflow:auto">${rows.map(r=>`<label style="display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)">
-      <input type="checkbox" data-import-index="${r.index}" ${selected.has(r.index)?'checked':''} ${r.status==='imported'||parsed.fatal?'disabled':''} style="min-width:22px;min-height:22px;margin-top:3px" aria-label="${esc(r.merchant)} ${yen(r.amount)}を追加">
-      <span style="flex:1;min-width:0;overflow-wrap:anywhere"><strong>${esc(r.merchant)}</strong> <span class="num">${yen(r.amount)}</span><br><span class="muted">${r.date}・${r.status==='imported'?'取込済み':r.status==='overlap'?'既存と一致・要確認':'追加候補'}</span></span>
+      ${parsed.analysisOnly?'':`<input type="checkbox" data-import-index="${r.index}" ${selected.has(r.index)?'checked':''} ${r.status==='imported'||parsed.fatal?'disabled':''} style="min-width:22px;min-height:22px;margin-top:3px" aria-label="${esc(r.merchant)} ${yen(r.amount)}を追加">`}
+      <span style="flex:1;min-width:0;overflow-wrap:anywhere"><strong>${esc(r.merchant)}</strong> <span class="num">${yen(r.amount)}</span><br><span class="muted">${r.date}・${r.status==='imported'?'取込済み':r.status==='changed'?'保存済みの内容が変更されています':r.status==='overlap'?(parsed.analysisOnly?'既存と一致':'既存と一致・要確認'):(parsed.analysisOnly?'既存にない明細':'追加候補')}</span></span>
     </label>`).join('')}</div>`:''}
-    ${parsed.advice?`<details class="mt" open><summary>AIの節約アドバイス（${parsed.advice.suggestions.length}件）</summary><p class="muted mt">${esc(parsed.advice.summary)}</p><ul style="padding-left:22px">${parsed.advice.suggestions.map(s=>`<li><strong>${esc(s.title)}</strong>：${esc(s.action)}<br><span class="hint">根拠 ${s.observedCount}件・${yen(s.observedAmount)}</span></li>`).join('')}</ul><p id="importAdviceStatus" class="hint">${adviceReady?'アドバイスもHomeに保存します。':'未選択の新規明細があるため、今回はアドバイスを保存しません。'}</p></details>`:''}
-    <p class="mt" id="importSelectedSummary">追加する明細 ${selectedRows.length}件・${yen(selectedRows.reduce((sum,r)=>sum+r.amount,0))}</p>
-    <div class="row mt"><button class="btn primary" id="importConfirm" ${parsed.fatal||(!selectedRows.length&&!adviceReady)?'disabled':''}>${adviceReady?(selectedRows.length?'明細とアドバイスを保存':'アドバイスを保存'):'選択した明細を取り込む'}</button><button class="btn" id="importCancel">キャンセル</button></div>
+    ${parsed.advice?`<details class="mt" open><summary>AIの節約アドバイス（${parsed.advice.suggestions.length}件）</summary><p class="muted mt">${esc(parsed.advice.summary)}</p><ul style="padding-left:22px">${parsed.advice.suggestions.map(s=>`<li><strong>${esc(s.title)}</strong>：${esc(s.action)}<br><span class="hint">根拠 ${s.observedCount}件・${yen(s.observedAmount)}</span></li>`).join('')}</ul><p id="importAdviceStatus" class="hint">${parsed.analysisOnly?(adviceReady?'統合アドバイスだけをHomeに保存します。':'既存にない、または内容が変わった明細があるため保存できません。先に各PDFと保存済み明細を確認してください。'):adviceReady?'アドバイスもHomeに保存します。':'未選択の新規明細があるため、今回はアドバイスを保存しません。'}</p></details>`:''}
+    <p class="mt" id="importSelectedSummary">${parsed.analysisOnly?'追加・変更する明細 0件':`追加する明細 ${selectedRows.length}件・${yen(selectedRows.reduce((sum,r)=>sum+r.amount,0))}`}</p>
+    <div class="row mt"><button class="btn primary" id="importConfirm" ${parsed.fatal||(!selectedRows.length&&!adviceReady)?'disabled':''}>${parsed.analysisOnly?'統合アドバイスを保存':adviceReady?(selectedRows.length?'明細とアドバイスを保存':'アドバイスを保存'):'選択した明細を取り込む'}</button><button class="btn" id="importCancel">キャンセル</button></div>
   </div>`;
   host.querySelectorAll('[data-import-index]').forEach(input=>{
     input.onchange=()=>{
+      if(parsed.analysisOnly) return;
       const index=Number(input.dataset.importIndex);
       if(input.checked) selected.add(index); else selected.delete(index);
       const chosen=rows.filter(r=>selected.has(r.index));
@@ -1643,15 +1680,21 @@ function confirmImportPreview(){
   if(!importPreview || importPreview.parsed.fatal) return;
   const {parsed,rows,selected}=importPreview;
   const fresh=classifyImportRows(parsed,state.transactions);
+  if(parsed.analysisOnly && !adviceReadyForImport(parsed,fresh,selected)){
+    importPreview.rows=fresh; importPreview.selected=new Set();
+    renderImportPreview();
+    document.getElementById('importMsg').textContent='既存にない、または内容が変わった明細があるため、統合アドバイスは保存していません。先に各PDFと保存済み明細を確認してください。';
+    return;
+  }
   // 確認中に別の操作や同期で明細が増えたら、新しい一致候補を再確認する。
-  if(fresh.some(r=>selected.has(r.index) && r.status==='overlap' && rows[r.index].status==='new')){
+  if(!parsed.analysisOnly && fresh.some(r=>selected.has(r.index) && r.status==='overlap' && rows[r.index].status==='new')){
     importPreview.rows=fresh;
     importPreview.selected=new Set(fresh.filter(r=>selected.has(r.index) && r.status==='new').map(r=>r.index));
     renderImportPreview();
     document.getElementById('importMsg').textContent='確認中に明細が更新されました。一致候補を選択から外したので、もう一度確認してください。';
     return;
   }
-  const additions=fresh.filter(r=>selected.has(r.index) && r.status!=='imported').map(r=>({
+  const additions=parsed.analysisOnly?[]:fresh.filter(r=>selected.has(r.index) && r.status!=='imported').map(r=>({
     id:r.id||uid(), date:r.date, merchant:r.merchant, amount:r.amount,
     category:r.category && catNames().includes(r.category)?r.category:categorize(r.merchant), src:'csv'
   }));
@@ -1662,7 +1705,7 @@ function confirmImportPreview(){
   const adviceSaved=adviceReady && reportsNext!==reportsBefore;
   if(additions.length || adviceSaved){
     const before=state.transactions, beforeUpdatedAt=state.updatedAt;
-    state.transactions=before.concat(additions);
+    if(additions.length) state.transactions=before.concat(additions);
     if(adviceSaved) state.savingsReports=reportsNext;
     if(persist()===false){
       state.transactions=before;
@@ -1678,8 +1721,8 @@ function confirmImportPreview(){
   renderTx();
   document.getElementById('importMsg').textContent=additions.length
     ? `${additions.length}件・${yen(additions.reduce((sum,r)=>sum+r.amount,0))}を追加しました。未選択・取込済み ${fresh.length-additions.length}件、支払・返金等 ${ignored}件、入力エラー ${errors}件は追加していません。`
-    : '追加する明細はありません。取込済みの明細は追加していません。';
-  if(parsed.advice) document.getElementById('importMsg').textContent+=adviceSaved?' AIの節約アドバイスをHomeに保存しました。':adviceReady?' このPDFの同じ、または新しいアドバイスは保存済みです。':' 未選択の新規明細があるため、アドバイスは保存していません。';
+    : parsed.analysisOnly?'明細の追加・変更はありません。':'追加する明細はありません。取込済みの明細は追加していません。';
+  if(parsed.advice) document.getElementById('importMsg').textContent+=adviceSaved?(parsed.analysisOnly?' 統合アドバイスをHomeに保存しました。':' AIの節約アドバイスをHomeに保存しました。'):adviceReady?(parsed.analysisOnly?' このPDFの組み合わせの同じ、または新しいアドバイスは保存済みです。':' このPDFの同じ、または新しいアドバイスは保存済みです。'):' 未選択の新規明細があるため、アドバイスは保存していません。';
 }
 function splitCsvLine(line){
   const out=[]; let cur='', inQ=false;
